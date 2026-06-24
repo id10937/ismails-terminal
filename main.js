@@ -76,7 +76,11 @@ const state = {
   bgParticles:  [],
   searchIndex:  -1,
   activeCustom: null,
+  alerts:       [],
+  alertUnread:  0,
 };
+
+const WATCHLIST_COLORS = ['#00ffff','#7b61ff','#f59e0b','#10b981','#f43f5e','#06b6d4','#8b5cf6','#ec4899','#f97316','#a3e635'];
 
 // ═══════════════════════════════════════════════════════════
 // API HELPERS
@@ -265,7 +269,6 @@ function getFallbackNews(symbol) {
 
 async function refreshQuotes() {
   try {
-    // Only refresh active asset to avoid rate limits
     const active = getActiveAsset();
     try {
       const q = await fetchQuote(active.fh);
@@ -278,7 +281,14 @@ async function refreshQuotes() {
     updateHeaderPrice();
     updateIndicators(active.fh);
     genOrderBook();
-    renderOrderBook();
+    if (state.view === 'markets') {
+      renderOrderBook();
+    } else if (state.view === 'portfolio') {
+      renderPortfolio();
+    } else if (state.view === 'analytics') {
+      renderAnalytics();
+    }
+    checkAlerts();
   } catch (e) {
     console.warn('Refresh cycle failed:', e.message);
   }
@@ -900,7 +910,10 @@ function initVolumeChart() {
 function initOrderBook() {
   genOrderBook();
   renderOrderBook();
-  setInterval(() => { genOrderBook(); renderOrderBook(); }, 1500);
+  setInterval(() => {
+    genOrderBook();
+    if (state.view === 'markets') renderOrderBook();
+  }, 1500);
 }
 
 function genOrderBook() {
@@ -1243,17 +1256,11 @@ async function loadCustomSymbol(fhSym, dispSym, name) {
 // ═══════════════════════════════════════════════════════════
 // VIEW RENDERERS (Portfolio / Signals panels)
 // ═══════════════════════════════════════════════════════════
-const viewCache = { portfolio: null, signals: null };
+const viewCache = { obOriginal: null, newsOriginal: null };
 
 function renderPortfolio() {
   const ob = document.getElementById('orderbook');
-  const obHeader = document.querySelector('#orderbook .orderbook__header');
   if (!ob) return;
-  // Save original orderbook HTML first time
-  if (!viewCache.portfolio) {
-    viewCache.portfolio = ob.innerHTML;
-  }
-  const q = state.quotes[getActiveAsset().fh];
   const positions = WATCHLIST.map((sym, i) => {
     const quote = state.quotes[sym.fh] || {};
     const price = quote.regularMarketPrice || 0;
@@ -1291,7 +1298,6 @@ function renderPortfolio() {
       <span style="color:${totalPnl >= 0 ? '#10b981' : '#f43f5e'}">${totalPnl >= 0 ? '+' : ''}$${fmt.price(Math.abs(totalPnl), 2)}</span>
       <span style="color:var(--color-fg)">$${fmt.price(totalVal, 0)}</span>
     </div>`;
-  // Fix header
   document.querySelector('.panel--orderbook .panel__meta').textContent = 'Portfolio';
   document.querySelector('.panel--orderbook .panel__title').innerHTML = `
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" aria-hidden="true">
@@ -1305,9 +1311,6 @@ function renderPortfolio() {
 function renderSignals() {
   const news = document.getElementById('news-feed');
   if (!news) return;
-  if (!viewCache.signals) {
-    viewCache.signals = news.innerHTML;
-  }
   const candles = state.candles;
   const closes = candles.map(c => c.close).filter(c => c != null);
   const signals = calcSignals(closes);
@@ -1335,11 +1338,80 @@ function renderSignals() {
     Trade Signals`;
 }
 
+function renderAnalytics() {
+  const ob = document.getElementById('orderbook');
+  if (!ob) return;
+  const active = getActiveAsset();
+  const q = state.quotes[active.fh] || {};
+  const candles = state.candles;
+  const closes = candles.map(c => c.close).filter(Boolean);
+
+  const price = q.regularMarketPrice || 0;
+  const chg = q.regularMarketChange || 0;
+  const pct = q.regularMarketChangePercent || 0;
+  const high = q.regularMarketDayHigh || price;
+  const low  = q.regularMarketDayLow  || price;
+  const vol  = q.regularMarketVolume  || 0;
+  const avgVol = q.averageDailyVolume3Month || vol || 1;
+
+  const rsi = clamp(50 + pct * 3, 5, 95);
+  const rsiLabel = rsi > 70 ? 'Overbought' : rsi < 30 ? 'Oversold' : 'Neutral';
+  const rsiColor = rsi > 70 ? 'var(--color-rose)' : rsi < 30 ? 'var(--color-emerald)' : 'var(--color-amber)';
+
+  const macdLabel = chg >= 0 ? 'Bullish' : 'Bearish';
+  const macdColor = chg >= 0 ? 'var(--color-positive)' : 'var(--color-negative)';
+
+  const bbW = price ? Math.abs(chg / price) : 0;
+  const bbLabel = bbW > 0.02 ? 'Volatile' : bbW > 0.005 ? 'Normal' : 'Compressed';
+
+  const volRatio = vol / avgVol;
+  const volLabel = volRatio > 1.5 ? 'High Activity' : volRatio > 0.8 ? 'Normal' : 'Low Activity';
+  const volColor = volRatio > 1.5 ? 'var(--color-positive)' : volRatio > 0.8 ? 'var(--color-fg)' : 'var(--color-fg-muted)';
+
+  const sma20arr = calcSMA(closes, 20);
+  const sma50arr = calcSMA(closes, 50);
+  const sma20 = sma20arr[sma20arr.length - 1];
+  const sma50 = sma50arr[sma50arr.length - 1];
+  const trendLabel = (sma20 && sma50) ? (sma20 > sma50 ? 'Bullish — SMA20 > SMA50' : 'Bearish — SMA20 < SMA50') : 'Insufficient data';
+  const trendColor = (sma20 && sma50) ? (sma20 > sma50 ? 'var(--color-positive)' : 'var(--color-negative)') : 'var(--color-fg-muted)';
+
+  const row = (label, value, color = 'var(--color-fg)') => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:10px">
+      <span style="color:var(--color-fg-muted)">${label}</span>
+      <span style="color:${color};font-weight:600;font-family:var(--font-mono);font-size:9px">${value}</span>
+    </div>`;
+  const section = (label) => `
+    <div style="padding:5px 10px;font-size:9px;color:var(--color-fg-dim);letter-spacing:0.08em;border-bottom:1px solid rgba(255,255,255,0.08);margin-top:2px">${label}</div>`;
+
+  ob.innerHTML =
+    section('TREND') +
+    row('Direction', trendLabel, trendColor) +
+    row('SMA 20', sma20 ? '$' + fmt.price(sma20, 2) : '—') +
+    row('SMA 50', sma50 ? '$' + fmt.price(sma50, 2) : '—') +
+    section('MOMENTUM') +
+    row('RSI (14)', rsi.toFixed(1) + ' — ' + rsiLabel, rsiColor) +
+    row('MACD Signal', macdLabel + ' (' + (chg >= 0 ? '+' : '') + chg.toFixed(2) + ')', macdColor) +
+    row('BB Width', bbW.toFixed(4) + ' — ' + bbLabel) +
+    section('PRICE') +
+    row('Day Range', '$' + fmt.price(low, 2) + ' – $' + fmt.price(high, 2)) +
+    row('Day Change', (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%', pct >= 0 ? 'var(--color-positive)' : 'var(--color-negative)') +
+    section('VOLUME') +
+    row('Vol 24H', fmt.compact(vol * price)) +
+    row('vs Avg Vol', (volRatio * 100).toFixed(0) + '% — ' + volLabel, volColor);
+
+  document.querySelector('.panel--orderbook .panel__meta').textContent = 'Technical';
+  document.querySelector('.panel--orderbook .panel__title').innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" aria-hidden="true">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+    Analytics`;
+}
+
 function restorePanels() {
   const ob = document.getElementById('orderbook');
   const news = document.getElementById('news-feed');
-  if (ob && viewCache.portfolio) ob.innerHTML = viewCache.portfolio;
-  if (news && viewCache.signals) news.innerHTML = viewCache.signals;
+  if (ob && viewCache.obOriginal) ob.innerHTML = viewCache.obOriginal;
+  if (news && viewCache.newsOriginal !== null) news.innerHTML = viewCache.newsOriginal;
   document.querySelector('.panel--orderbook .panel__meta').textContent = 'Depth ×5';
   document.querySelector('.panel--orderbook .panel__title').innerHTML = `
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" aria-hidden="true">
@@ -1411,6 +1483,7 @@ function initNavigation() {
 
       // Analytics view
       if (newView === 'analytics') {
+        renderAnalytics();
         drawMainChart();
         if (msg) { showBanner(msg); setTimeout(hideBanner, 2000); }
         return;
@@ -1433,27 +1506,240 @@ function initNavigation() {
 function initWatchlistAdd() {
   const btn = document.querySelector('.panel__action');
   if (!btn) return;
-  btn.addEventListener('click', () => {
-    const active = getActiveAsset();
-    showBanner('Adding ' + active.display + ' to watchlist\u2026');
-    setTimeout(() => {
-      hideBanner();
-      showBanner(active.display + ' added to watchlist!');
-      setTimeout(hideBanner, 2000);
-    }, 800);
+
+  // Create the add-symbol modal
+  const modal = document.createElement('div');
+  modal.className = 'wl-add-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-label', 'Add symbol to watchlist');
+  modal.innerHTML = `
+    <div class="wl-add-modal__inner">
+      <div class="wl-add-modal__header">
+        <span>Add Symbol</span>
+        <button class="wl-add-modal__close" aria-label="Close">✕</button>
+      </div>
+      <input class="wl-add-modal__input" type="text" placeholder="Search ticker or company…" autocomplete="off" spellcheck="false"/>
+      <ul class="wl-add-modal__results" role="listbox"></ul>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const input   = modal.querySelector('.wl-add-modal__input');
+  const results = modal.querySelector('.wl-add-modal__results');
+  const closeBtn = modal.querySelector('.wl-add-modal__close');
+
+  function openModal() {
+    modal.classList.add('wl-add-modal--open');
+    input.value = '';
+    results.innerHTML = '';
+    setTimeout(() => input.focus(), 50);
+  }
+  function closeModal() { modal.classList.remove('wl-add-modal--open'); }
+
+  btn.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+  let searchTimer;
+  input.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    const q = input.value.trim();
+    if (q.length < 1) { results.innerHTML = ''; return; }
+    results.innerHTML = '<li class="wl-add-modal__result wl-add-modal__result--loading">Searching…</li>';
+    searchTimer = setTimeout(async () => {
+      try {
+        const data = await searchSymbols(q);
+        const quotes = data?.quotes?.slice(0, 8) || [];
+        if (!quotes.length) {
+          results.innerHTML = '<li class="wl-add-modal__result wl-add-modal__result--loading">No results</li>';
+          return;
+        }
+        results.innerHTML = quotes.map(r => {
+          const sym  = r.symbol || '';
+          const name = r.shortname || r.longname || sym;
+          const type = r.quoteType || '';
+          return `<li class="wl-add-modal__result" role="option" tabindex="0" data-sym="${sym}" data-name="${name}">
+            <span class="wl-add-modal__result-sym">${sym}</span>
+            <span class="wl-add-modal__result-name">${name}</span>
+            <span class="wl-add-modal__result-type">${type}</span>
+          </li>`;
+        }).join('');
+
+        results.querySelectorAll('.wl-add-modal__result[data-sym]').forEach(li => {
+          const activate = () => {
+            const sym  = li.dataset.sym;
+            const name = li.dataset.name;
+            if (!sym) return;
+            const already = WATCHLIST.find(w => w.fh === sym);
+            if (already) {
+              closeModal();
+              showBanner(sym + ' is already in your watchlist');
+              setTimeout(hideBanner, 2000);
+              return;
+            }
+            const color = WATCHLIST_COLORS[WATCHLIST.length % WATCHLIST_COLORS.length];
+            WATCHLIST.push({ fh: sym, display: sym, name, color });
+            renderWatchlistShell();
+            fetchQuote(sym).then(q => {
+              if (q) state.quotes[sym] = q;
+              renderWatchlist();
+            }).catch(() => {});
+            closeModal();
+            showBanner(sym + ' added to watchlist!');
+            setTimeout(hideBanner, 2000);
+          };
+          li.addEventListener('click', activate);
+          li.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } });
+        });
+      } catch {
+        results.innerHTML = '<li class="wl-add-modal__result wl-add-modal__result--loading">Search failed</li>';
+      }
+    }, 320);
   });
+
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 }
 
 // ═══════════════════════════════════════════════════════════
-// NOTIFICATIONS BUTTON
+// PRICE ALERTS
 // ═══════════════════════════════════════════════════════════
-function initNotifications() {
+function updateAlertBadge() {
+  const badge = document.getElementById('alert-badge');
+  if (!badge) return;
+  if (state.alertUnread > 0) {
+    badge.textContent = state.alertUnread;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function renderAlertsList() {
+  const list = document.getElementById('alerts-list');
+  if (!list) return;
+  if (!state.alerts.length) {
+    list.innerHTML = '<li class="alerts-panel__empty">No alerts set. Add one below.</li>';
+    return;
+  }
+  list.innerHTML = state.alerts.map((a, i) => `
+    <li class="alerts-panel__item ${a.triggered ? 'alerts-panel__item--triggered' : ''}">
+      <div class="alerts-panel__item-info">
+        <span class="alerts-panel__item-sym">${a.display}</span>
+        <span class="alerts-panel__item-cond">${a.direction === 'above' ? '▲ Above' : '▼ Below'} $${fmt.price(a.price, 2)}</span>
+        ${a.triggered ? '<span class="alerts-panel__item-fired">FIRED ✓</span>' : ''}
+      </div>
+      <button class="alerts-panel__item-del" data-index="${i}" aria-label="Remove alert">✕</button>
+    </li>`).join('');
+
+  list.querySelectorAll('.alerts-panel__item-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = +btn.dataset.index;
+      state.alerts.splice(idx, 1);
+      renderAlertsList();
+    });
+  });
+}
+
+function checkAlerts() {
+  let fired = false;
+  state.alerts.forEach(a => {
+    if (a.triggered) return;
+    const q = state.quotes[a.fh];
+    if (!q) return;
+    const price = q.regularMarketPrice;
+    if (!price) return;
+    const hit = (a.direction === 'above' && price >= a.price) ||
+                (a.direction === 'below' && price <= a.price);
+    if (hit) {
+      a.triggered = true;
+      state.alertUnread++;
+      fired = true;
+      showBanner(`🔔 Alert: ${a.display} is ${a.direction} $${fmt.price(a.price, 2)}!`);
+      setTimeout(hideBanner, 4000);
+    }
+  });
+  if (fired) {
+    updateAlertBadge();
+    renderAlertsList();
+  }
+}
+
+function initAlerts() {
   const btn = document.getElementById('btn-notifications');
   if (!btn) return;
-  btn.addEventListener('click', () => {
-    showBanner('Notifications: 3 new alerts');
-    setTimeout(hideBanner, 3000);
+
+  // Inject badge
+  btn.style.position = 'relative';
+  const badge = document.createElement('span');
+  badge.id = 'alert-badge';
+  badge.className = 'alert-badge';
+  badge.style.display = 'none';
+  btn.appendChild(badge);
+
+  // Create panel
+  const panel = document.createElement('div');
+  panel.id = 'alerts-panel';
+  panel.className = 'alerts-panel';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-label', 'Price Alerts');
+  panel.innerHTML = `
+    <div class="alerts-panel__header">
+      <span class="alerts-panel__title">Price Alerts</span>
+      <button class="alerts-panel__close" aria-label="Close">✕</button>
+    </div>
+    <ul class="alerts-panel__list" id="alerts-list"></ul>
+    <div class="alerts-panel__form">
+      <select class="alerts-panel__select" id="alert-sym">
+        ${WATCHLIST.map(w => `<option value="${w.fh}" data-display="${w.display}">${w.display} — ${w.name}</option>`).join('')}
+      </select>
+      <select class="alerts-panel__select" id="alert-dir">
+        <option value="above">▲ Price above</option>
+        <option value="below">▼ Price below</option>
+      </select>
+      <input class="alerts-panel__input" id="alert-price" type="number" placeholder="Target price…" min="0" step="any"/>
+      <button class="alerts-panel__add-btn" id="alert-add-btn">+ Add Alert</button>
+    </div>`;
+  document.body.appendChild(panel);
+
+  const closeBtn = panel.querySelector('.alerts-panel__close');
+  closeBtn.addEventListener('click', () => panel.classList.remove('alerts-panel--open'));
+
+  document.getElementById('alert-add-btn').addEventListener('click', () => {
+    const symEl   = document.getElementById('alert-sym');
+    const dirEl   = document.getElementById('alert-dir');
+    const priceEl = document.getElementById('alert-price');
+    const fh      = symEl.value;
+    const direction = dirEl.value;
+    const price   = parseFloat(priceEl.value);
+    if (!fh || !direction || isNaN(price) || price <= 0) {
+      priceEl.style.borderColor = 'var(--color-rose)';
+      setTimeout(() => { priceEl.style.borderColor = ''; }, 1200);
+      return;
+    }
+    const w = WATCHLIST.find(x => x.fh === fh);
+    state.alerts.push({ id: Date.now(), fh, display: w?.display || fh, direction, price, triggered: false });
+    priceEl.value = '';
+    renderAlertsList();
   });
+
+  btn.addEventListener('click', () => {
+    const isOpen = panel.classList.toggle('alerts-panel--open');
+    if (isOpen) {
+      state.alertUnread = 0;
+      updateAlertBadge();
+      // Refresh symbol options in case watchlist changed
+      const symEl = document.getElementById('alert-sym');
+      if (symEl) symEl.innerHTML = WATCHLIST.map(w => `<option value="${w.fh}" data-display="${w.display}">${w.display} — ${w.name}</option>`).join('');
+      renderAlertsList();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!panel.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+      panel.classList.remove('alerts-panel--open');
+    }
+  });
+
+  renderAlertsList();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1469,11 +1755,17 @@ document.addEventListener('DOMContentLoaded', () => {
   initKeyboardShortcut();
   initNavigation();
   initWatchlistAdd();
-  initNotifications();
+  initAlerts();
   initHeatmap();
   initOrderBook();
 
   renderWatchlistShell();
+
+  // Capture original panel HTML for clean restoration when switching views
+  const obEl   = document.getElementById('orderbook');
+  const newsEl = document.getElementById('news-feed');
+  if (obEl)   viewCache.obOriginal   = obEl.innerHTML;
+  if (newsEl) viewCache.newsOriginal = newsEl.innerHTML;
 
   showBanner('Connecting to Yahoo Finance Data Network\u2026');
 
@@ -1491,6 +1783,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadAllData().then(() => {
     hideBanner();
     setDiag('\u2713 Data OK', 'var(--color-positive)');
+    // Capture obOriginal after first render so it has real asks/bids structure
+    const ob2 = document.getElementById('orderbook');
+    if (ob2) viewCache.obOriginal = ob2.innerHTML;
   }).catch(e => {
     console.error('Load failed:', e);
     hideBanner();

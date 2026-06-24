@@ -1233,6 +1233,220 @@ body {
   animation: spin 0.7s linear infinite;
 }
 
+/* ── WATCHLIST ADD MODAL ─────────────────────────────────── */
+.wl-add-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 9000;
+  align-items: center;
+  justify-content: center;
+}
+.wl-add-modal--open { display: flex; }
+.wl-add-modal__inner {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glow-cyan);
+  width: 360px;
+  max-width: 95vw;
+  overflow: hidden;
+}
+.wl-add-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--color-primary);
+  text-transform: uppercase;
+}
+.wl-add-modal__close {
+  background: none;
+  border: none;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition);
+}
+.wl-add-modal__close:hover { color: var(--color-fg); }
+.wl-add-modal__input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  padding: 10px 16px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--color-fg);
+  outline: none;
+}
+.wl-add-modal__input::placeholder { color: var(--color-fg-dim); }
+.wl-add-modal__results {
+  list-style: none;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.wl-add-modal__result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  transition: background var(--transition);
+  font-size: 11px;
+}
+.wl-add-modal__result:hover,
+.wl-add-modal__result:focus { background: var(--color-primary-dim); outline: none; }
+.wl-add-modal__result--loading { color: var(--color-fg-muted); cursor: default; }
+.wl-add-modal__result--loading:hover { background: transparent; }
+.wl-add-modal__result-sym { color: var(--color-primary); font-weight: 700; font-family: var(--font-mono); min-width: 60px; }
+.wl-add-modal__result-name { color: var(--color-fg); flex: 1; }
+.wl-add-modal__result-type { color: var(--color-fg-dim); font-size: 9px; text-transform: uppercase; }
+
+/* ── ALERTS PANEL ────────────────────────────────────────── */
+.alerts-panel {
+  position: fixed;
+  top: 48px;
+  right: 12px;
+  width: 320px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), var(--glow-cyan);
+  z-index: 8000;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+.alerts-panel--open { display: flex; }
+.alerts-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+.alerts-panel__title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--color-primary);
+  text-transform: uppercase;
+}
+.alerts-panel__close {
+  background: none;
+  border: none;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition);
+}
+.alerts-panel__close:hover { color: var(--color-fg); }
+.alerts-panel__list {
+  list-style: none;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.alerts-panel__empty {
+  padding: 14px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--color-fg-dim);
+}
+.alerts-panel__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 10px;
+}
+.alerts-panel__item--triggered { opacity: 0.55; }
+.alerts-panel__item-info { display: flex; flex-direction: column; gap: 2px; }
+.alerts-panel__item-sym { color: var(--color-primary); font-weight: 700; font-family: var(--font-mono); }
+.alerts-panel__item-cond { color: var(--color-fg-muted); font-size: 9px; }
+.alerts-panel__item-fired { color: var(--color-positive); font-size: 9px; font-weight: 600; }
+.alerts-panel__item-del {
+  background: none;
+  border: none;
+  color: var(--color-fg-dim);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition);
+  flex-shrink: 0;
+}
+.alerts-panel__item-del:hover { color: var(--color-rose); }
+.alerts-panel__form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--color-border);
+}
+.alerts-panel__select,
+.alerts-panel__input {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-fg);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 6px 8px;
+  outline: none;
+  width: 100%;
+  transition: border-color var(--transition);
+}
+.alerts-panel__select:focus,
+.alerts-panel__input:focus { border-color: var(--color-primary); }
+.alerts-panel__input::placeholder { color: var(--color-fg-dim); }
+.alerts-panel__add-btn {
+  background: var(--color-primary-dim);
+  border: 1px solid var(--color-border-glow);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 7px;
+  cursor: pointer;
+  transition: background var(--transition);
+  letter-spacing: 0.04em;
+}
+.alerts-panel__add-btn:hover { background: rgba(0,255,255,0.18); }
+
+/* ── ALERT BADGE ─────────────────────────────────────────── */
+.alert-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--color-rose);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  min-width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  padding: 0 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
 /* ── REDUCED MOTION ──────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
