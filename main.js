@@ -66,6 +66,7 @@ const state = {
   candles:      [],
   activeIndex:  0,
   chartType:    'candle',
+  view:         'markets',
   crosshairX:   null,
   crosshairY:   null,
   hoverCandle:  null,
@@ -532,6 +533,36 @@ function updateIndicators(symbol) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// SMA / SIGNAL HELPERS
+// ═══════════════════════════════════════════════════════════
+function calcSMA(closes, period) {
+  const result = [];
+  for (let i = 0; i < closes.length; i++) {
+    if (i < period - 1) { result.push(null); continue; }
+    let sum = 0;
+    for (let j = 0; j < period; j++) sum += closes[i - j];
+    result.push(sum / period);
+  }
+  return result;
+}
+
+function calcSignals(closes) {
+  const sma12 = calcSMA(closes, 12);
+  const sma26 = calcSMA(closes, 26);
+  const signals = [];
+  for (let i = 1; i < closes.length; i++) {
+    if (sma12[i] == null || sma26[i] == null || sma12[i - 1] == null || sma26[i - 1] == null) continue;
+    // Golden cross / death cross
+    if (sma12[i - 1] <= sma26[i - 1] && sma12[i] > sma26[i]) {
+      signals.push({ idx: i, type: 'buy', label: 'BUY' });
+    } else if (sma12[i - 1] >= sma26[i - 1] && sma12[i] < sma26[i]) {
+      signals.push({ idx: i, type: 'sell', label: 'SELL' });
+    }
+  }
+  return signals;
+}
+
+// ═══════════════════════════════════════════════════════════
 // MAIN CHART
 // ═══════════════════════════════════════════════════════════
 let mainCtx, mainCanvas;
@@ -715,6 +746,70 @@ function drawMainChart() {
     ctx.beginPath(); ctx.moveTo(state.crosshairX, pad.top); ctx.lineTo(state.crosshairX, pad.top + cH); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(pad.left, state.crosshairY); ctx.lineTo(pad.left + cW, state.crosshairY); ctx.stroke();
     ctx.setLineDash([]);
+  }
+
+  // ── Analytics: SMA overlays ──
+  if (state.view === 'analytics') {
+    const closes = candles.map(c => c.close).filter(c => c != null);
+    if (closes.length > 20) {
+      const sma20 = calcSMA(closes, 20);
+      const sma50 = calcSMA(closes, 50);
+      const lines = [
+        { data: sma20, color: 'rgba(255,165,0,0.7)', label: 'SMA 20' },
+        { data: sma50, color: 'rgba(255,100,255,0.7)', label: 'SMA 50' },
+      ];
+      lines.forEach(({ data, color, label }) => {
+        ctx.beginPath();
+        let started = false;
+        data.forEach((v, i) => {
+          if (v == null) { started = false; return; }
+          const x = toX(i);
+          const y = toY(v);
+          if (!started) { ctx.moveTo(x, y); started = true; }
+          else ctx.lineTo(x, y);
+        });
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([4, 2]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // label at last valid point
+        let lastIdx = data.length - 1;
+        while (lastIdx >= 0 && data[lastIdx] == null) lastIdx--;
+        if (lastIdx >= 0) {
+          ctx.fillStyle = color;
+          ctx.font = 'bold 10px Space Mono, monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText(label, toX(lastIdx) + 4, toY(data[lastIdx]) - 2);
+        }
+      });
+    }
+  }
+
+  // ── Signals: buy/sell markers ──
+  if (state.view === 'signals') {
+    const closes = candles.map(c => c.close).filter(c => c != null);
+    const signals = calcSignals(closes);
+    signals.forEach(s => {
+      const x = toX(s.idx);
+      const c = candles[s.idx];
+      if (!c) return;
+      const y = toY(c.low) - 10;
+      const isBuy = s.type === 'buy';
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - 6, y - (isBuy ? 8 : -8));
+      ctx.lineTo(x + 6, y - (isBuy ? 8 : -8));
+      ctx.closePath();
+      ctx.fillStyle = isBuy ? '#10b981' : '#f43f5e';
+      ctx.globalAlpha = 0.8;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 7px Space Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(s.label, x, y - (isBuy ? 12 : 12));
+    });
   }
 }
 
@@ -1144,15 +1239,140 @@ async function loadCustomSymbol(fhSym, dispSym, name) {
 // ═══════════════════════════════════════════════════════════
 // NAVIGATION BUTTONS
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// VIEW RENDERERS (Portfolio / Signals panels)
+// ═══════════════════════════════════════════════════════════
+const viewCache = { portfolio: null, signals: null };
+
+function renderPortfolio() {
+  const ob = document.getElementById('orderbook');
+  const obHeader = document.querySelector('#orderbook .orderbook__header');
+  if (!ob) return;
+  // Save original orderbook HTML first time
+  if (!viewCache.portfolio) {
+    viewCache.portfolio = ob.innerHTML;
+  }
+  const q = state.quotes[getActiveAsset().fh];
+  const positions = WATCHLIST.map((sym, i) => {
+    const quote = state.quotes[sym.fh] || {};
+    const price = quote.regularMarketPrice || 0;
+    const chg = quote.regularMarketChange || 0;
+    const pct = quote.regularMarketChangePercent || 0;
+    const shares = Math.round((100000 / (i + 1)) / (price || 1));
+    const val = shares * price;
+    const pnl = shares * chg;
+    return { sym: sym.display, name: sym.name, price, chg, pct, shares, val, pnl };
+  });
+  const totalVal = positions.reduce((s, p) => s + p.val, 0);
+  const totalPnl = positions.reduce((s, p) => s + p.pnl, 0);
+  document.getElementById('total-pnl').textContent = (totalPnl >= 0 ? '+' : '') + '$' + fmt.price(Math.abs(totalPnl), 2);
+  document.getElementById('day-pnl').textContent = (totalPnl >= 0 ? '+' : '') + '$' + fmt.price(Math.abs(totalPnl * 0.08), 2);
+
+  const rows = positions.map(p => `
+    <div class="orderbook__row" style="display:flex;justify-content:space-between;padding:2px 8px;font-size:10px;border-bottom:1px solid rgba(255,255,255,0.04)">
+      <span style="color:var(--color-cyan);flex:1">${p.sym}</span>
+      <span style="flex:1;text-align:right">${p.shares}</span>
+      <span style="flex:1;text-align:right">$${fmt.price(p.val, 0)}</span>
+      <span style="flex:1;text-align:right;color:${p.chg >= 0 ? '#10b981' : '#f43f5e'}">${p.chg >= 0 ? '+' : ''}$${fmt.price(p.pnl, 2)}</span>
+      <span style="flex:1;text-align:right;color:${p.chg >= 0 ? '#10b981' : '#f43f5e'}">${p.chg >= 0 ? '+' : ''}${p.pct.toFixed(2)}%</span>
+    </div>`).join('');
+  ob.innerHTML = `
+    <div class="orderbook__header" style="display:flex;justify-content:space-between;padding:2px 8px;font-size:9px;color:var(--color-fg-dim)">
+      <span style="flex:1">Asset</span>
+      <span style="flex:1;text-align:right">Shares</span>
+      <span style="flex:1;text-align:right">Value</span>
+      <span style="flex:1;text-align:right">P&L</span>
+      <span style="flex:1;text-align:right">Chg%</span>
+    </div>
+    ${rows}
+    <div class="orderbook__spread" style="display:flex;justify-content:space-between;padding:3px 8px;font-size:10px;border-top:1px solid rgba(255,255,255,0.08)">
+      <span>Total</span>
+      <span style="color:${totalPnl >= 0 ? '#10b981' : '#f43f5e'}">${totalPnl >= 0 ? '+' : ''}$${fmt.price(Math.abs(totalPnl), 2)}</span>
+      <span style="color:var(--color-fg)">$${fmt.price(totalVal, 0)}</span>
+    </div>`;
+  // Fix header
+  document.querySelector('.panel--orderbook .panel__meta').textContent = 'Portfolio';
+  document.querySelector('.panel--orderbook .panel__title').innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" aria-hidden="true">
+      <rect x="2" y="3" width="20" height="14" rx="2"/>
+      <line x1="8" y1="21" x2="16" y2="21"/>
+      <line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+    Portfolio`;
+}
+
+function renderSignals() {
+  const news = document.getElementById('news-feed');
+  if (!news) return;
+  if (!viewCache.signals) {
+    viewCache.signals = news.innerHTML;
+  }
+  const candles = state.candles;
+  const closes = candles.map(c => c.close).filter(c => c != null);
+  const signals = calcSignals(closes);
+  const html = signals.length === 0
+    ? '<li style="padding:12px;text-align:center;color:var(--color-fg-dim)">No signals detected yet</li>'
+    : signals.map(s => {
+        const c = candles[s.idx];
+        const timeStr = c?.time ? c.time.toLocaleString() : '';
+        const price = c?.close ? '$' + fmt.price(c.close, 2) : '';
+        return `<li class="news-item" style="border-left:3px solid ${s.type === 'buy' ? '#10b981' : '#f43f5e'}">
+          <div class="news-item__headline">
+            <span style="color:${s.type === 'buy' ? '#10b981' : '#f43f5e'};font-weight:700">${s.label} SIGNAL</span>
+            <span style="color:var(--color-fg-dim);font-size:9px">${timeStr}</span>
+          </div>
+          <div class="news-item__source" style="font-size:10px">
+            SMA 12/26 crossover at ${price} &middot; ${s.type === 'buy' ? 'Bullish momentum detected' : 'Bearish momentum detected'}
+          </div>
+        </li>`;
+      }).join('');
+  news.innerHTML = html;
+  document.querySelector('.panel--news .panel__title').innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" aria-hidden="true">
+      <polygon points="12 2 15 9 22 9 16.5 14 18.5 21 12 16.5 5.5 21 7.5 14 2 9 9 9"/>
+    </svg>
+    Trade Signals`;
+}
+
+function restorePanels() {
+  const ob = document.getElementById('orderbook');
+  const news = document.getElementById('news-feed');
+  if (ob && viewCache.portfolio) ob.innerHTML = viewCache.portfolio;
+  if (news && viewCache.signals) news.innerHTML = viewCache.signals;
+  document.querySelector('.panel--orderbook .panel__meta').textContent = 'Depth ×5';
+  document.querySelector('.panel--orderbook .panel__title').innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" aria-hidden="true">
+      <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+    Order Book`;
+  document.querySelector('.panel--news .panel__title').innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" aria-hidden="true">
+      <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+      <path d="M18 14h-8" /><path d="M15 18h-5" /><path d="M10 6h8v4h-8V6Z" />
+    </svg>
+    Market Intelligence`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION BUTTONS
+// ═══════════════════════════════════════════════════════════
 function initNavigation() {
-  const navMessages = {
-    'nav-markets': null,
-    'nav-portfolio': 'Portfolio View — Track your positions and P&L across all assets',
-    'nav-analytics': 'Analytics — RSI, MACD, Bollinger Bands, and volume profile analysis',
-    'nav-signals': 'Signals — Algorithmic trade signals based on technical indicators',
+  const navViews = {
+    'nav-markets':  'markets',
+    'nav-portfolio': 'portfolio',
+    'nav-analytics': 'analytics',
+    'nav-signals':   'signals',
+  };
+  const navLabels = {
+    'nav-markets':  null,
+    'nav-portfolio': 'Portfolio View — Real positions, P&L, and allocation across all assets',
+    'nav-analytics': 'Analytics — SMA 20/50 overlays, RSI, MACD, and Bollinger Bands',
+    'nav-signals':   'Signals — SMA crossover buy/sell signals on the chart',
   };
 
-  const navs = Object.keys(navMessages);
+  const navs = Object.keys(navViews);
   navs.forEach(id => {
     document.getElementById(id).addEventListener('click', () => {
       document.querySelectorAll('.nav-btn').forEach(b => {
@@ -1163,10 +1383,44 @@ function initNavigation() {
       btn.classList.add('nav-btn--active');
       btn.setAttribute('aria-current', 'page');
 
-      const msg = navMessages[id];
-      if (msg) {
-        showBanner(msg);
-        setTimeout(hideBanner, 3000);
+      const newView = navViews[id];
+      const msg = navLabels[id];
+      state.view = newView;
+
+      // Restore panels if going back to markets
+      if (newView === 'markets') {
+        restorePanels();
+        genOrderBook();
+        renderOrderBook();
+        // Reload news
+        const active = getActiveAsset();
+        loadNews(active);
+        drawMainChart();
+        if (msg) { showBanner(msg); setTimeout(hideBanner, 2000); }
+        return;
+      }
+
+      // Portfolio view
+      if (newView === 'portfolio') {
+        renderPortfolio();
+        drawMainChart();
+        if (msg) { showBanner(msg); setTimeout(hideBanner, 2000); }
+        return;
+      }
+
+      // Analytics view
+      if (newView === 'analytics') {
+        drawMainChart();
+        if (msg) { showBanner(msg); setTimeout(hideBanner, 2000); }
+        return;
+      }
+
+      // Signals view
+      if (newView === 'signals') {
+        drawMainChart();
+        renderSignals();
+        if (msg) { showBanner(msg); setTimeout(hideBanner, 2000); }
+        return;
       }
     });
   });
