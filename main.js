@@ -138,11 +138,9 @@ async function fetchAllQuotes() {
   }
 }
 
-async function fetchChart(symbol, resolution = '60', daysBack = 5) {
-  const to = Math.floor(Date.now() / 1000);
-  const from = to - (daysBack * 24 * 60 * 60);
+async function fetchChart(symbol, resolution = '60m', range = '5d') {
   const data = await fetchYahooFinance(
-    `/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${resolution}&from=${from}&to=${to}`
+    `/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${resolution}&range=${range}`
   );
   if (!data?.chart?.result?.[0]?.indicators?.quote?.[0]) return [];
 
@@ -213,10 +211,10 @@ async function loadAllData() {
   await loadNews(active);
 }
 
-async function loadChart(asset, resolution = '60', daysBack = 5) {
+async function loadChart(asset, interval = '60m', range = '5d') {
   showBanner('Loading chart: ' + asset.display + '\u2026');
   try {
-    const candles = await fetchChart(asset.fh, resolution, daysBack);
+    const candles = await fetchChart(asset.fh, interval, range);
     if (candles.length > 0) {
       state.candles = candles;
       drawMainChart();
@@ -576,10 +574,10 @@ function initMainChart() {
       document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('tf-btn--active'));
       btn.classList.add('tf-btn--active');
       const tf = btn.dataset.tf;
-      const map = { '1m':'1', '5m':'5', '1H':'60', '4H':'60', '1D':'D', '1W':'W' };
-      const rng = { '1m':1, '5m':2, '1H':5, '4H':14, '1D':90, '1W':365 };
+      const intervals = { '1m':'1m', '5m':'5m', '1H':'60m', '4H':'60m', '1D':'1d', '1W':'1wk' };
+      const ranges = { '1m':'1d', '5m':'5d', '1H':'5d', '4H':'1mo', '1D':'3mo', '1W':'1y' };
       const w = getActiveAsset();
-      await loadChart(w, map[tf] || '60', rng[tf] || 5);
+      await loadChart(w, intervals[tf] || '60m', ranges[tf] || '5d');
     });
   });
 
@@ -1236,7 +1234,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(refreshQuotes, 15_000);
   setInterval(() => {
     const active = getActiveAsset();
-    loadChart(active);
+    loadChart(active, '60m', '5d');
   }, 60_000);
 
   setInterval(() => {
