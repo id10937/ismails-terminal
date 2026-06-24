@@ -1429,6 +1429,135 @@ function restorePanels() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// NEWS BROADCAST
+// ═══════════════════════════════════════════════════════════
+const BROADCAST_TOPICS = [
+  { fh: 'SPY',     label: 'Markets',     color: '#10b981' },
+  { fh: 'BTC-USD', label: 'Crypto',      color: '#f59e0b' },
+  { fh: 'AAPL',    label: 'Tech',        color: '#7b61ff' },
+  { fh: 'GLD',     label: 'Commodities', color: '#06b6d4' },
+  { fh: 'TSLA',    label: 'Equities',    color: '#f43f5e' },
+];
+
+let broadcastCountdownTimer = null;
+let broadcastCountdownVal   = 0;
+
+function showBroadcastOverlay() {
+  const el = document.getElementById('broadcast-overlay');
+  if (el) el.classList.add('broadcast-overlay--visible');
+}
+function hideBroadcastOverlay() {
+  const el = document.getElementById('broadcast-overlay');
+  if (el) el.classList.remove('broadcast-overlay--visible');
+  if (broadcastCountdownTimer) { clearInterval(broadcastCountdownTimer); broadcastCountdownTimer = null; }
+}
+
+function startBroadcastCountdown(seconds) {
+  if (broadcastCountdownTimer) clearInterval(broadcastCountdownTimer);
+  broadcastCountdownVal = seconds;
+  const el = document.getElementById('broadcast-countdown');
+  const tick = () => {
+    if (!el) return;
+    broadcastCountdownVal--;
+    if (broadcastCountdownVal <= 0) {
+      el.textContent = 'Refreshing…';
+    } else {
+      el.textContent = 'Refresh in ' + broadcastCountdownVal + 's';
+    }
+  };
+  tick();
+  broadcastCountdownTimer = setInterval(tick, 1000);
+}
+
+async function loadBroadcast() {
+  const grid = document.getElementById('broadcast-grid');
+  const meta = document.getElementById('broadcast-meta');
+  if (!grid) return;
+
+  grid.innerHTML = '<div class="broadcast-loading"><span class="broadcast-loading__dot"></span><span class="broadcast-loading__dot"></span><span class="broadcast-loading__dot"></span></div>';
+  if (meta) meta.textContent = 'Fetching live feeds…';
+
+  const allItems = [];
+  const seenHeadlines = new Set();
+
+  for (let i = 0; i < BROADCAST_TOPICS.length; i++) {
+    const topic = BROADCAST_TOPICS[i];
+    try {
+      const data = await fetchCompanyNews(topic.fh);
+      const news = data?.news || [];
+      news.slice(0, 5).forEach(n => {
+        const headline = n.title || '';
+        if (!headline || seenHeadlines.has(headline)) return;
+        seenHeadlines.add(headline);
+        allItems.push({
+          headline,
+          source:    n.publisher || 'Yahoo Finance',
+          time:      n.providerPublishTime ? relTime(n.providerPublishTime) : '',
+          url:       n.link || '',
+          sentiment: guessSentiment(headline),
+          label:     topic.label,
+          color:     topic.color,
+          ts:        n.providerPublishTime || 0,
+        });
+      });
+    } catch (e) {
+      console.warn('Broadcast fetch failed for', topic.fh);
+    }
+    if (i < BROADCAST_TOPICS.length - 1) await new Promise(r => setTimeout(r, 300));
+  }
+
+  allItems.sort((a, b) => b.ts - a.ts);
+
+  if (meta) meta.textContent = allItems.length + ' stories · ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+  renderBroadcastGrid(allItems);
+  renderBroadcastTicker(allItems);
+  startBroadcastCountdown(90);
+
+  // Auto-refresh after 90s if still in news view
+  setTimeout(() => {
+    if (state.view === 'news') loadBroadcast();
+  }, 90_000);
+}
+
+function renderBroadcastGrid(items) {
+  const grid = document.getElementById('broadcast-grid');
+  if (!grid) return;
+  if (!items.length) {
+    grid.innerHTML = '<div class="broadcast-empty">No stories available right now.</div>';
+    return;
+  }
+  const sentColors = { bullish: '#10b981', bearish: '#f43f5e', neutral: '#8888aa' };
+  grid.innerHTML = items.map((n, idx) => `
+    <article class="bc-card ${idx === 0 ? 'bc-card--featured' : ''}" role="listitem"
+      ${n.url ? 'tabindex="0" onclick="window.open(\'' + n.url.replace(/'/g,'') + '\',\'_blank\')" style="cursor:pointer"' : ''}>
+      <div class="bc-card__top">
+        <span class="bc-card__label" style="background:${n.color}20;color:${n.color};border-color:${n.color}40">${n.label}</span>
+        <span class="bc-card__sentiment" style="background:${sentColors[n.sentiment] ?? sentColors.neutral}" title="${n.sentiment}"></span>
+      </div>
+      <p class="bc-card__headline">${n.headline}</p>
+      <div class="bc-card__meta">
+        <span class="bc-card__source">${n.source}</span>
+        <span class="bc-card__time">${n.time ? n.time + ' ago' : ''}</span>
+      </div>
+    </article>`).join('');
+}
+
+function renderBroadcastTicker(items) {
+  const bar = document.getElementById('broadcast-ticker-bar');
+  if (!bar || !items.length) return;
+  const sentColors = { bullish: '#10b981', bearish: '#f43f5e', neutral: '#888' };
+  const text = items.map(n =>
+    `<span class="bticker__item">
+       <span class="bticker__dot" style="background:${sentColors[n.sentiment]}"></span>
+       <span class="bticker__label" style="color:${n.color}">${n.label}</span>
+       ${n.headline}
+     </span>`
+  ).join('<span class="bticker__sep">◆</span>');
+  bar.innerHTML = `<div class="bticker__track">${text}${text}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
 // NAVIGATION BUTTONS
 // ═══════════════════════════════════════════════════════════
 function initNavigation() {
@@ -1437,12 +1566,14 @@ function initNavigation() {
     'nav-portfolio': 'portfolio',
     'nav-analytics': 'analytics',
     'nav-signals':   'signals',
+    'nav-news':      'news',
   };
   const navLabels = {
-    'nav-markets':  null,
+    'nav-markets':   null,
     'nav-portfolio': 'Portfolio View — Real positions, P&L, and allocation across all assets',
     'nav-analytics': 'Analytics — SMA 20/50 overlays, RSI, MACD, and Bollinger Bands',
     'nav-signals':   'Signals — SMA crossover buy/sell signals on the chart',
+    'nav-news':      null,
   };
 
   const navs = Object.keys(navViews);
@@ -1462,10 +1593,10 @@ function initNavigation() {
 
       // Restore panels if going back to markets
       if (newView === 'markets') {
+        hideBroadcastOverlay();
         restorePanels();
         genOrderBook();
         renderOrderBook();
-        // Reload news
         const active = getActiveAsset();
         loadNews(active);
         drawMainChart();
@@ -1475,6 +1606,7 @@ function initNavigation() {
 
       // Portfolio view
       if (newView === 'portfolio') {
+        hideBroadcastOverlay();
         renderPortfolio();
         drawMainChart();
         if (msg) { showBanner(msg); setTimeout(hideBanner, 2000); }
@@ -1483,6 +1615,7 @@ function initNavigation() {
 
       // Analytics view
       if (newView === 'analytics') {
+        hideBroadcastOverlay();
         renderAnalytics();
         drawMainChart();
         if (msg) { showBanner(msg); setTimeout(hideBanner, 2000); }
@@ -1491,9 +1624,17 @@ function initNavigation() {
 
       // Signals view
       if (newView === 'signals') {
+        hideBroadcastOverlay();
         drawMainChart();
         renderSignals();
         if (msg) { showBanner(msg); setTimeout(hideBanner, 2000); }
+        return;
+      }
+
+      // News broadcast view
+      if (newView === 'news') {
+        showBroadcastOverlay();
+        loadBroadcast();
         return;
       }
     });

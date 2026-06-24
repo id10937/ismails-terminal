@@ -67,6 +67,9 @@
       <button class="nav-btn" id="nav-portfolio">Portfolio</button>
       <button class="nav-btn" id="nav-analytics">Analytics</button>
       <button class="nav-btn" id="nav-signals">Signals</button>
+      <button class="nav-btn nav-btn--news" id="nav-news">
+        <span class="nav-news-dot" aria-hidden="true"></span>News
+      </button>
     </nav>
 
     <div class="topbar__right">
@@ -213,6 +216,22 @@
           <span class="indicator-card__label">OI</span>
           <span class="indicator-card__value" id="oi-val">$19.4B</span>
         </div>
+      </div>
+
+      <!-- News Broadcast Overlay -->
+      <div id="broadcast-overlay" class="broadcast-overlay" hidden>
+        <div class="broadcast-header">
+          <div class="broadcast-header__left">
+            <span class="broadcast-live-dot" aria-hidden="true"></span>
+            <span class="broadcast-title">LIVE FINANCIAL NEWS BROADCAST</span>
+          </div>
+          <div class="broadcast-header__right">
+            <span class="broadcast-meta" id="broadcast-meta">Loading…</span>
+            <span class="broadcast-refresh" id="broadcast-countdown"></span>
+          </div>
+        </div>
+        <div class="broadcast-ticker-bar" id="broadcast-ticker-bar"></div>
+        <div class="broadcast-grid" id="broadcast-grid" role="list"></div>
       </div>
 
     </section>
