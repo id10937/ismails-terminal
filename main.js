@@ -812,12 +812,12 @@ function genOrderBook() {
   const q = state.quotes[getActiveAsset().fh];
   const mid = q?.regularMarketPrice ?? 50000;
 
-  state.asks = Array.from({ length: 10 }, (_, i) => ({
+  state.asks = Array.from({ length: 6 }, (_, i) => ({
     price: mid * (1 + (i + 1) * 0.0005 + Math.random() * 0.0003),
     size:  rand(0.1, 8),
   })).sort((a, b) => a.price - b.price);
 
-  state.bids = Array.from({ length: 10 }, (_, i) => ({
+  state.bids = Array.from({ length: 6 }, (_, i) => ({
     price: mid * (1 - (i + 1) * 0.0005 - Math.random() * 0.0003),
     size:  rand(0.1, 8),
   })).sort((a, b) => b.price - a.price);
@@ -1145,7 +1145,14 @@ async function loadCustomSymbol(fhSym, dispSym, name) {
 // NAVIGATION BUTTONS
 // ═══════════════════════════════════════════════════════════
 function initNavigation() {
-  const navs = ['nav-markets', 'nav-portfolio', 'nav-analytics', 'nav-signals'];
+  const navMessages = {
+    'nav-markets': null,
+    'nav-portfolio': 'Portfolio View — Track your positions and P&L across all assets',
+    'nav-analytics': 'Analytics — RSI, MACD, Bollinger Bands, and volume profile analysis',
+    'nav-signals': 'Signals — Algorithmic trade signals based on technical indicators',
+  };
+
+  const navs = Object.keys(navMessages);
   navs.forEach(id => {
     document.getElementById(id).addEventListener('click', () => {
       document.querySelectorAll('.nav-btn').forEach(b => {
@@ -1155,6 +1162,12 @@ function initNavigation() {
       const btn = document.getElementById(id);
       btn.classList.add('nav-btn--active');
       btn.setAttribute('aria-current', 'page');
+
+      const msg = navMessages[id];
+      if (msg) {
+        showBanner(msg);
+        setTimeout(hideBanner, 3000);
+      }
     });
   });
 }

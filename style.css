@@ -743,13 +743,18 @@ body {
 /* ── ORDER BOOK ──────────────────────────────────────────── */
 .panel--orderbook {
   flex: 0 0 auto;
+  max-height: 260px;
 }
 
 .orderbook {
   font-family: var(--font-mono);
   font-size: 11px;
-  overflow: hidden;
+  overflow-y: auto;
 }
+
+.orderbook::-webkit-scrollbar { width: 3px; }
+.orderbook::-webkit-scrollbar-track { background: transparent; }
+.orderbook::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
 
 .orderbook__header {
   display: grid;
