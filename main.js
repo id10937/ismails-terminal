@@ -1258,46 +1258,72 @@ async function loadCustomSymbol(fhSym, dispSym, name) {
 // ═══════════════════════════════════════════════════════════
 const viewCache = { obOriginal: null, newsOriginal: null };
 
+// ── Portfolio localStorage helpers ────────────────────────
+function getPortfolioPositions() {
+  try { return JSON.parse(localStorage.getItem('terminal_portfolio') || '{}'); }
+  catch { return {}; }
+}
+function savePortfolioPositions(data) {
+  localStorage.setItem('terminal_portfolio', JSON.stringify(data));
+}
+
 function renderPortfolio() {
   const ob = document.getElementById('orderbook');
   if (!ob) return;
-  const positions = WATCHLIST.map((sym, i) => {
+  const stored = getPortfolioPositions();
+  const all = WATCHLIST.map(sym => {
     const quote = state.quotes[sym.fh] || {};
-    const price = quote.regularMarketPrice || 0;
-    const chg = quote.regularMarketChange || 0;
-    const pct = quote.regularMarketChangePercent || 0;
-    const shares = Math.round((100000 / (i + 1)) / (price || 1));
-    const val = shares * price;
-    const pnl = shares * chg;
-    return { sym: sym.display, name: sym.name, price, chg, pct, shares, val, pnl };
+    const price  = quote.regularMarketPrice || 0;
+    const pos    = stored[sym.fh] || { shares: 0, avgCost: 0 };
+    const shares = parseFloat(pos.shares) || 0;
+    const avgCost = parseFloat(pos.avgCost) || 0;
+    const val    = shares * price;
+    const pnl    = avgCost > 0 ? shares * (price - avgCost) : 0;
+    const pnlPct = avgCost > 0 ? ((price - avgCost) / avgCost) * 100 : 0;
+    return { sym: sym.display, name: sym.name, fh: sym.fh, color: sym.color, price, shares, avgCost, val, pnl, pnlPct };
   });
-  const totalVal = positions.reduce((s, p) => s + p.val, 0);
-  const totalPnl = positions.reduce((s, p) => s + p.pnl, 0);
-  document.getElementById('total-pnl').textContent = (totalPnl >= 0 ? '+' : '') + '$' + fmt.price(Math.abs(totalPnl), 2);
-  document.getElementById('day-pnl').textContent = (totalPnl >= 0 ? '+' : '') + '$' + fmt.price(Math.abs(totalPnl * 0.08), 2);
+  const held = all.filter(p => p.shares > 0);
+  const totalVal = held.reduce((s, p) => s + p.val, 0);
+  const totalPnl = held.reduce((s, p) => s + p.pnl, 0);
 
-  const rows = positions.map(p => `
-    <div class="orderbook__row" style="display:flex;justify-content:space-between;padding:2px 8px;font-size:10px;border-bottom:1px solid rgba(255,255,255,0.04)">
-      <span style="color:var(--color-cyan);flex:1">${p.sym}</span>
-      <span style="flex:1;text-align:right">${p.shares}</span>
-      <span style="flex:1;text-align:right">$${fmt.price(p.val, 0)}</span>
-      <span style="flex:1;text-align:right;color:${p.chg >= 0 ? '#10b981' : '#f43f5e'}">${p.chg >= 0 ? '+' : ''}$${fmt.price(p.pnl, 2)}</span>
-      <span style="flex:1;text-align:right;color:${p.chg >= 0 ? '#10b981' : '#f43f5e'}">${p.chg >= 0 ? '+' : ''}${p.pct.toFixed(2)}%</span>
-    </div>`).join('');
+  document.getElementById('total-pnl').textContent = (totalPnl >= 0 ? '+' : '') + '$' + fmt.price(Math.abs(totalPnl), 2);
+  document.getElementById('day-pnl').textContent = '$' + fmt.price(totalVal, 0);
+
+  const display = held.length ? held : all;
+  const rows = display.map(p => {
+    const empty = p.shares === 0;
+    return `
+    <div class="orderbook__row" style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;font-size:10px;border-bottom:1px solid rgba(255,255,255,0.04);${empty ? 'opacity:0.3' : ''}">
+      <span style="color:${p.color};flex:1.2;font-weight:600;font-family:var(--font-mono)">${p.sym}</span>
+      <span style="flex:1;text-align:right;font-family:var(--font-mono)">${empty ? '—' : p.shares}</span>
+      <span style="flex:1.2;text-align:right;font-family:var(--font-mono)">${empty ? '—' : '$' + fmt.price(p.val, 0)}</span>
+      <span style="flex:1.4;text-align:right;color:${p.pnl >= 0 ? '#10b981' : '#f43f5e'};font-family:var(--font-mono)">${empty ? '—' : (p.pnl >= 0 ? '+' : '') + '$' + fmt.price(p.pnl, 2)}</span>
+      <span style="flex:1;text-align:right;color:${p.pnlPct >= 0 ? '#10b981' : '#f43f5e'};font-family:var(--font-mono)">${empty ? '—' : (p.pnlPct >= 0 ? '+' : '') + p.pnlPct.toFixed(2) + '%'}</span>
+    </div>`;
+  }).join('');
+
+  const emptyNote = held.length === 0
+    ? `<div style="padding:14px 10px;text-align:center;font-size:10px;color:var(--color-fg-dim)">
+         No holdings yet — click <strong style="color:var(--color-primary)">✎ Edit</strong> above to enter your positions.
+       </div>` : '';
+
   ob.innerHTML = `
     <div class="orderbook__header" style="display:flex;justify-content:space-between;padding:2px 8px;font-size:9px;color:var(--color-fg-dim)">
-      <span style="flex:1">Asset</span>
-      <span style="flex:1;text-align:right">Shares</span>
-      <span style="flex:1;text-align:right">Value</span>
-      <span style="flex:1;text-align:right">P&L</span>
-      <span style="flex:1;text-align:right">Chg%</span>
+      <span style="flex:1.2">Asset</span>
+      <span style="flex:1;text-align:right">Units</span>
+      <span style="flex:1.2;text-align:right">Value</span>
+      <span style="flex:1.4;text-align:right">Unrealized P&amp;L</span>
+      <span style="flex:1;text-align:right">Return</span>
     </div>
+    ${emptyNote}
     ${rows}
-    <div class="orderbook__spread" style="display:flex;justify-content:space-between;padding:3px 8px;font-size:10px;border-top:1px solid rgba(255,255,255,0.08)">
-      <span>Total</span>
-      <span style="color:${totalPnl >= 0 ? '#10b981' : '#f43f5e'}">${totalPnl >= 0 ? '+' : ''}$${fmt.price(Math.abs(totalPnl), 2)}</span>
-      <span style="color:var(--color-fg)">$${fmt.price(totalVal, 0)}</span>
-    </div>`;
+    ${held.length ? `
+    <div class="orderbook__spread" style="display:flex;justify-content:space-between;gap:8px;padding:4px 8px;font-size:10px;border-top:1px solid rgba(255,255,255,0.08)">
+      <span style="color:var(--color-fg-muted)">Total</span>
+      <span style="color:var(--color-fg);font-family:var(--font-mono)">$${fmt.price(totalVal, 0)}</span>
+      <span style="color:${totalPnl >= 0 ? '#10b981' : '#f43f5e'};font-family:var(--font-mono)">${totalPnl >= 0 ? '+' : ''}$${fmt.price(Math.abs(totalPnl), 2)}</span>
+    </div>` : ''}`;
+
   document.querySelector('.panel--orderbook .panel__meta').textContent = 'Portfolio';
   document.querySelector('.panel--orderbook .panel__title').innerHTML = `
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" aria-hidden="true">
@@ -1305,7 +1331,95 @@ function renderPortfolio() {
       <line x1="8" y1="21" x2="16" y2="21"/>
       <line x1="12" y1="17" x2="12" y2="21"/>
     </svg>
-    Portfolio`;
+    Portfolio
+    <button id="portfolio-edit-btn" class="portfolio-edit-btn" title="Edit positions" aria-label="Edit portfolio">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+      Edit
+    </button>`;
+  const editBtn = document.getElementById('portfolio-edit-btn');
+  if (editBtn) editBtn.addEventListener('click', openPortfolioEdit);
+}
+
+// ── Portfolio Edit Panel ──────────────────────────────────
+function initPortfolioEdit() {
+  const panel = document.createElement('div');
+  panel.id = 'portfolio-edit-panel';
+  panel.className = 'portfolio-edit-panel';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-label', 'Edit portfolio positions');
+  panel.innerHTML = `
+    <div class="portfolio-edit__header">
+      <span class="portfolio-edit__title">✎ Edit Portfolio</span>
+      <button class="portfolio-edit__close" id="portfolio-edit-close" aria-label="Close">✕</button>
+    </div>
+    <p class="portfolio-edit__note">Enter your holdings. Unrealized P&amp;L calculates against your average cost.</p>
+    <div class="portfolio-edit__list" id="portfolio-edit-list"></div>
+    <div class="portfolio-edit__footer">
+      <button class="portfolio-edit__cancel" id="portfolio-edit-cancel">Cancel</button>
+      <button class="portfolio-edit__save" id="portfolio-edit-save">Save Portfolio</button>
+    </div>`;
+  document.body.appendChild(panel);
+
+  document.getElementById('portfolio-edit-close').addEventListener('click', closePortfolioEdit);
+  document.getElementById('portfolio-edit-cancel').addEventListener('click', closePortfolioEdit);
+  document.getElementById('portfolio-edit-save').addEventListener('click', () => {
+    const data = {};
+    WATCHLIST.forEach(sym => {
+      const safeId = sym.fh.replace(/[^a-z0-9]/gi, '_');
+      const sharesEl = document.getElementById('pe-shares-' + safeId);
+      const costEl   = document.getElementById('pe-cost-'   + safeId);
+      data[sym.fh] = {
+        shares:  parseFloat(sharesEl?.value  || '0') || 0,
+        avgCost: parseFloat(costEl?.value || '0') || 0,
+      };
+    });
+    savePortfolioPositions(data);
+    closePortfolioEdit();
+    if (state.view === 'portfolio') renderPortfolio();
+    showBanner('Portfolio saved ✓');
+    setTimeout(hideBanner, 1800);
+  });
+}
+
+function openPortfolioEdit() {
+  const panel = document.getElementById('portfolio-edit-panel');
+  if (!panel) return;
+  const stored = getPortfolioPositions();
+  const list   = document.getElementById('portfolio-edit-list');
+  list.innerHTML = WATCHLIST.map(sym => {
+    const pos    = stored[sym.fh] || { shares: '', avgCost: '' };
+    const safeId = sym.fh.replace(/[^a-z0-9]/gi, '_');
+    const price  = state.quotes[sym.fh]?.regularMarketPrice;
+    return `
+      <div class="portfolio-edit__row">
+        <div class="portfolio-edit__row-info">
+          <span class="portfolio-edit__row-sym" style="color:${sym.color}">${sym.display}</span>
+          <span class="portfolio-edit__row-name">${sym.name}</span>
+          ${price ? '<span class="portfolio-edit__row-price">$' + fmt.price(price, 2) + '</span>' : ''}
+        </div>
+        <div class="portfolio-edit__row-inputs">
+          <label class="portfolio-edit__field">
+            <span class="portfolio-edit__field-label">Units</span>
+            <input class="portfolio-edit__input" id="pe-shares-${safeId}" type="number" min="0" step="any" value="${pos.shares || ''}" placeholder="0"/>
+          </label>
+          <label class="portfolio-edit__field">
+            <span class="portfolio-edit__field-label">Avg Cost</span>
+            <input class="portfolio-edit__input" id="pe-cost-${safeId}" type="number" min="0" step="any" value="${pos.avgCost || ''}" placeholder="0.00"/>
+          </label>
+        </div>
+      </div>`;
+  }).join('');
+  panel.classList.add('portfolio-edit-panel--open');
+  document.getElementById('portfolio-edit-list').querySelector('input')?.focus();
+}
+
+function closePortfolioEdit() {
+  const panel = document.getElementById('portfolio-edit-panel');
+  if (panel) panel.classList.remove('portfolio-edit-panel--open');
 }
 
 function renderSignals() {
@@ -1897,6 +2011,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
   initWatchlistAdd();
   initAlerts();
+  initPortfolioEdit();
   initHeatmap();
   initOrderBook();
 
