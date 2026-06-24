@@ -1412,10 +1412,22 @@ function openPortfolioEdit() {
             <span class="portfolio-edit__field-label">Avg Cost</span>
             <input class="portfolio-edit__input" id="pe-cost-${safeId}" type="number" min="0" step="any" value="${pos.avgCost || ''}" placeholder="0.00"/>
           </label>
+          <button class="portfolio-edit__remove" data-safe="${safeId}" title="Remove position" aria-label="Remove ${sym.display} position">✕</button>
         </div>
       </div>`;
   }).join('');
   panel.classList.add('portfolio-edit-panel--open');
+  // Wire remove buttons
+  list.querySelectorAll('.portfolio-edit__remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const safeId = btn.dataset.safe;
+      const sharesEl = document.getElementById('pe-shares-' + safeId);
+      const costEl   = document.getElementById('pe-cost-'   + safeId);
+      if (sharesEl) sharesEl.value = '';
+      if (costEl)   costEl.value   = '';
+      btn.closest('.portfolio-edit__row').classList.add('portfolio-edit__row--removed');
+    });
+  });
   document.getElementById('portfolio-edit-list').querySelector('input')?.focus();
 }
 
