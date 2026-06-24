@@ -193,14 +193,23 @@ function getActiveAsset() {
   return WATCHLIST[state.activeIndex];
 }
 
+function setDiag(msg, color) {
+  const d = document.getElementById('diag-status');
+  if (d) { d.textContent = msg; if (color) d.style.color = color; }
+}
+
 async function loadAllData() {
+  setDiag('\u23F3 Fetching quotes...', 'var(--color-amber)');
   await fetchAllQuotes();
+  setDiag('\u23F3 Rendering...', 'var(--color-amber)');
   renderWatchlist();
   renderTicker();
   updateHeaderPrice();
 
   const active = getActiveAsset();
+  setDiag('\u23F3 Loading chart...', 'var(--color-amber)');
   await loadChart(active);
+  setDiag('\u23F3 Loading news...', 'var(--color-amber)');
   await loadNews(active);
 }
 
@@ -1201,12 +1210,26 @@ document.addEventListener('DOMContentLoaded', () => {
   renderWatchlistShell();
 
   showBanner('Connecting to Yahoo Finance Data Network\u2026');
+
+  // Show diagnostics in status bar
+  const statusEl = document.querySelector('.statusbar__left');
+  if (statusEl) {
+    const diag = document.createElement('span');
+    diag.className = 'statusbar__item';
+    diag.id = 'diag-status';
+    diag.style.color = 'var(--color-amber)';
+    diag.textContent = '\u26A0 Loading...';
+    statusEl.appendChild(diag);
+  }
+
   loadAllData().then(() => {
     hideBanner();
+    setDiag('\u2713 Data OK', 'var(--color-positive)');
   }).catch(e => {
-    console.error(e);
+    console.error('Load failed:', e);
     hideBanner();
-    showBanner('\u26A0 Data fetch error \u2014 retrying\u2026');
+    setDiag('\u2717 Failed: ' + (e.message || e), 'var(--color-negative)');
+    showBanner('\u26A0 ' + (e.message || 'Data fetch error') + ' \u2014 retrying\u2026');
     setTimeout(() => { loadAllData().catch(() => {}); hideBanner(); }, 5000);
   });
 
