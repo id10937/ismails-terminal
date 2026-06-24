@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: ismails-terminal
+    env: node
+    buildCommand: npm install
+    startCommand: node yahoo-finance-proxy.js
