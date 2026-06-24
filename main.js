@@ -126,9 +126,11 @@ async function fetchQuote(symbol) {
 }
 
 async function fetchAllQuotes() {
-  // Only fetch quotes for the watchlist + active asset to avoid rate limits
-  const symbols = [...WATCHLIST.map(w => w.fh)];
-  if (state.activeCustom) symbols.push(state.activeCustom.fh);
+  // Fetch watchlist + any extra ticker-bar symbols + active custom asset
+  const watchlistFhs = new Set(WATCHLIST.map(w => w.fh));
+  const tickerExtras = TICKER_SYMBOLS.filter(s => !watchlistFhs.has(s));
+  const symbols = [...WATCHLIST.map(w => w.fh), ...tickerExtras];
+  if (state.activeCustom && !watchlistFhs.has(state.activeCustom.fh)) symbols.push(state.activeCustom.fh);
 
   // Sequential fetch with delays to avoid Yahoo rate limiting
   for (let i = 0; i < symbols.length; i++) {
@@ -2051,6 +2053,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   setInterval(refreshQuotes, 15_000);
+
+  // Refresh ticker-bar extra symbols (TSLA, AAPL, etc.) every 3 minutes
+  const tickerExtras = TICKER_SYMBOLS.filter(s => !new Set(WATCHLIST.map(w => w.fh)).has(s));
+  setInterval(async () => {
+    for (let i = 0; i < tickerExtras.length; i++) {
+      try {
+        const q = await fetchQuote(tickerExtras[i]);
+        if (q) state.quotes[tickerExtras[i]] = q;
+      } catch {}
+      if (i < tickerExtras.length - 1) await new Promise(r => setTimeout(r, 300));
+    }
+    renderTicker();
+  }, 180_000);
+
   setInterval(() => {
     const active = getActiveAsset();
     loadChart(active, '60m', '5d');
