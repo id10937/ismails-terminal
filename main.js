@@ -922,6 +922,7 @@ function renderOrderBook() {
   const asksEl = document.getElementById('ob-asks');
   const bidsEl = document.getElementById('ob-bids');
   const spreadEl = document.getElementById('ob-spread');
+  if (!asksEl || !bidsEl || !spreadEl) return;
   const maxSz = Math.max(...state.asks.map(a => a.size), ...state.bids.map(b => b.size), 0.1);
 
   let askTot = 0;
