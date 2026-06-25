@@ -1741,6 +1741,11 @@ function initNavigation() {
       // Restore panels if going back to markets
       if (newView === 'markets') {
         hideBroadcastOverlay();
+        // Restore candles saved before analytics long-range load
+        if (state._savedCandles?.length) {
+          state.candles = state._savedCandles;
+          state._savedCandles = null;
+        }
         restorePanels();
         genOrderBook();
         renderOrderBook();
@@ -1754,17 +1759,25 @@ function initNavigation() {
       // Portfolio view
       if (newView === 'portfolio') {
         hideBroadcastOverlay();
+        if (state._savedCandles?.length) { state.candles = state._savedCandles; state._savedCandles = null; }
         renderPortfolio();
         drawMainChart();
         if (msg) { showBanner(msg); setTimeout(hideBanner, 2000); }
         return;
       }
 
-      // Analytics view
+      // Analytics view — auto-load 1D/2Y so SMA 200 has 200+ candles
       if (newView === 'analytics') {
         hideBroadcastOverlay();
         renderAnalytics();
         drawMainChart();
+        const active = getActiveAsset();
+        state._savedCandles = state.candles.slice();
+        showBanner('Loading 2-year daily data for SMA 200…');
+        loadChart(active, '1d', '2y').then(() => {
+          hideBanner();
+          if (state.view === 'analytics') { renderAnalytics(); drawMainChart(); }
+        }).catch(() => hideBanner());
         if (msg) { showBanner(msg); setTimeout(hideBanner, 2000); }
         return;
       }
@@ -1772,6 +1785,7 @@ function initNavigation() {
       // Signals view
       if (newView === 'signals') {
         hideBroadcastOverlay();
+        if (state._savedCandles?.length) { state.candles = state._savedCandles; state._savedCandles = null; }
         drawMainChart();
         renderSignals();
         if (msg) { showBanner(msg); setTimeout(hideBanner, 2000); }
