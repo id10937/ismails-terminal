@@ -1815,6 +1815,29 @@ body {
   border-color: rgba(0,255,255,0.6);
 }
 
+.portfolio-edit__remove {
+  align-self: flex-end;
+  padding: 5px 8px;
+  background: none;
+  border: 1px solid rgba(244,63,94,0.3);
+  border-radius: var(--radius-sm);
+  color: #f43f5e;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.portfolio-edit__remove:hover {
+  background: rgba(244,63,94,0.15);
+  border-color: rgba(244,63,94,0.6);
+}
+.portfolio-edit__row--removed {
+  opacity: 0.35;
+  text-decoration: line-through;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   .ticker__track { animation: none; }
