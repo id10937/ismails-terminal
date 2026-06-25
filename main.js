@@ -655,8 +655,8 @@ function initMainChart() {
       document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('tf-btn--active'));
       btn.classList.add('tf-btn--active');
       const tf = btn.dataset.tf;
-      const intervals = { '1m':'1m', '5m':'5m', '1H':'60m', '4H':'60m', '1D':'1d', '1W':'1wk' };
-      const ranges = { '1m':'1d', '5m':'5d', '1H':'5d', '4H':'1mo', '1D':'3mo', '1W':'1y' };
+      const intervals = { '1m':'1m', '1D':'5m', '1W':'60m', '1M':'1d', '3M':'1d', '6M':'1d', '1Y':'1d' };
+      const ranges    = { '1m':'1d', '1D':'1d', '1W':'5d',  '1M':'1mo','3M':'3mo','6M':'6mo','1Y':'1y'  };
       const w = getActiveAsset();
       await loadChart(w, intervals[tf] || '60m', ranges[tf] || '5d');
     });
