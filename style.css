@@ -1739,38 +1739,121 @@ body {
   text-align: center;
 }
 
-/* ── MOBILE RESPONSIVE ───────────────────────────────────── */
+/* ── RESPONSIVE / MOBILE ─────────────────────────────────── */
 @media (max-width: 960px) {
-  .dashboard { grid-template-columns: 200px 1fr 220px; }
+  .command-grid { grid-template-columns: 200px 1fr 220px; }
 }
+
 @media (max-width: 768px) {
-  .topbar__nav { overflow-x: auto; flex-wrap: nowrap; gap: 2px; -webkit-overflow-scrolling: touch; }
-  .nav-btn { padding: 4px 9px; font-size: 9px; white-space: nowrap; flex-shrink: 0; }
-  .dashboard {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
-    grid-template-areas: "col-b" "col-a" "col-c";
+  /* Allow body to scroll instead of being locked */
+  body {
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
     overflow-y: auto;
+    grid-template-rows: 48px 28px auto auto;
   }
-  .col-a { max-height: 260px; overflow-y: auto; border-right: none; border-bottom: 1px solid var(--color-border); }
-  .col-c { display: none; }
-  .col-b { min-height: 360px; }
-  .chart-wrap canvas { min-height: 220px; }
+
+  /* Nav bar scrolls horizontally */
+  .topbar__nav {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    gap: 2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .topbar__nav::-webkit-scrollbar { display: none; }
+  .nav-btn { padding: 5px 10px; font-size: 9px; white-space: nowrap; flex-shrink: 0; }
+
+  /* Ticker scrolls properly */
+  .ticker-bar { overflow: hidden; }
+
+  /* Stack columns vertically: chart → watchlist → right panel */
+  .command-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "col-b"
+      "col-a"
+      "col-c";
+    overflow: visible;
+    height: auto;
+  }
+
+  /* Chart column */
+  .col-b {
+    min-height: 340px;
+    height: auto;
+    border-right: none;
+    border-bottom: var(--panel-border);
+    overflow: visible;
+  }
+  .chart-wrap { height: 240px; min-height: 240px; flex-shrink: 0; }
+
+  /* Watchlist column: horizontal scroll strip */
+  .col-a {
+    border-right: none;
+    border-bottom: var(--panel-border);
+    height: auto;
+    max-height: 280px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Right column: show below chart */
+  .col-c {
+    display: flex;
+    height: auto;
+    border-right: none;
+    min-height: 200px;
+    overflow: visible;
+  }
+  .col-c .panel { max-height: 280px; overflow-y: auto; }
+
+  /* Indicators wrap instead of overflow */
   .indicators-row { flex-wrap: wrap; gap: 4px; }
   .indicator-card { flex: 1 1 calc(33% - 4px); min-width: 80px; }
-  .portfolio-edit-panel { width: calc(100vw - 24px); right: 12px; }
-  .alerts-panel { width: calc(100vw - 24px); right: 12px; }
+
+  /* Chart controls wrap */
+  .chart-controls { flex-wrap: wrap; gap: 3px; }
+
+  /* Panels/overlays go full width */
+  .portfolio-edit-panel { width: calc(100vw - 24px); right: 12px; left: 12px; }
+  .alerts-panel { width: calc(100vw - 24px); right: 12px; left: 12px; }
+  .broadcast-overlay { padding: 12px; }
+
+  /* Statusbar */
+  .statusbar { font-size: 9px; }
 }
+
 @media (max-width: 480px) {
-  .topbar { padding: 0 8px; gap: 6px; }
+  body { grid-template-rows: 48px 24px auto auto; }
+
+  /* Compact topbar */
+  .topbar { padding: 0 8px; gap: 4px; }
   .topbar__brand-name { display: none; }
-  .topbar__search { flex: 1; max-width: none; }
+  .topbar__search { flex: 1; max-width: none; min-width: 0; }
   .topbar__clock { display: none; }
   .status-dot--live span { display: none; }
-  .col-a { display: none; }
+
+  /* Nav buttons smaller */
+  .nav-btn { padding: 4px 8px; font-size: 8.5px; }
+
+  /* Chart on small screens */
+  .chart-wrap { height: 220px; min-height: 220px; flex-shrink: 0; }
+
+  /* Watchlist compact */
+  .col-a { max-height: 220px; }
+  .watchlist-item { padding: 5px 8px; }
+
+  /* Statusbar minimal */
   .statusbar { font-size: 8px; gap: 6px; padding: 0 6px; }
   .statusbar__right { display: none; }
-  .login-box { width: calc(100vw - 32px); padding: 24px 20px; }
+
+  /* Login box full width */
+  .login-box { width: calc(100vw - 32px); padding: 28px 20px; }
+
+  /* Indicator cards: 2 per row on very small screens */
+  .indicator-card { flex: 1 1 calc(50% - 4px); }
 }
 
 /* ── REDUCED MOTION ──────────────────────────────────────── */
