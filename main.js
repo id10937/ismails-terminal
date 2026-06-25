@@ -21,9 +21,16 @@ const DEFAULT_WATCHLIST_FHS = new Set(WATCHLIST.map(w => w.fh));
 function saveWatchlistExtras() {
   const extras = WATCHLIST.filter(w => !DEFAULT_WATCHLIST_FHS.has(w.fh));
   localStorage.setItem('terminal_watchlist_extras', JSON.stringify(extras));
+  const removedDefaults = [...DEFAULT_WATCHLIST_FHS].filter(fh => !WATCHLIST.find(w => w.fh === fh));
+  localStorage.setItem('terminal_watchlist_removed', JSON.stringify(removedDefaults));
 }
 function restoreWatchlistExtras() {
   try {
+    const removed = JSON.parse(localStorage.getItem('terminal_watchlist_removed') || '[]');
+    removed.forEach(fh => {
+      const idx = WATCHLIST.findIndex(w => w.fh === fh);
+      if (idx !== -1) WATCHLIST.splice(idx, 1);
+    });
     const extras = JSON.parse(localStorage.getItem('terminal_watchlist_extras') || '[]');
     extras.forEach(w => { if (!WATCHLIST.find(x => x.fh === w.fh)) WATCHLIST.push(w); });
   } catch {}
@@ -91,6 +98,7 @@ const state = {
   activeCustom: null,
   alerts:       [],
   alertUnread:  0,
+  watchlistEdit: false,
 };
 
 const WATCHLIST_COLORS = ['#00ffff','#7b61ff','#f59e0b','#10b981','#f43f5e','#06b6d4','#8b5cf6','#ec4899','#f97316','#a3e635'];
@@ -420,11 +428,13 @@ function renderTicker() {
 // ═══════════════════════════════════════════════════════════
 function renderWatchlistShell() {
   const el = document.getElementById('watchlist');
+  const editMode = state.watchlistEdit;
   el.innerHTML = WATCHLIST.map((w, i) => `
-    <li class="watchlist__item ${i === state.activeIndex && !state.activeCustom ? 'watchlist__item--active' : ''}"
+    <li class="watchlist__item ${i === state.activeIndex && !state.activeCustom ? 'watchlist__item--active' : ''}${editMode ? ' watchlist__item--edit' : ''}"
         role="listitem" tabindex="0" data-index="${i}"
         style="--item-color: ${w.color}"
         aria-label="${w.name}">
+      ${editMode ? `<button class="watchlist__remove-btn" data-index="${i}" aria-label="Remove ${w.display}" tabindex="0">✕</button>` : ''}
       <span class="watchlist__symbol">${w.display}</span>
       <span class="watchlist__price" id="wl-price-${i}">\u2014</span>
       <span class="watchlist__name">${w.name}</span>
@@ -432,6 +442,21 @@ function renderWatchlistShell() {
       <div class="watchlist__bg-bar" id="wl-bar-${i}" style="width:50%;background:${w.color}"></div>
     </li>`).join('');
   attachWatchlistEvents();
+  if (editMode) attachWatchlistRemoveEvents();
+}
+
+function attachWatchlistRemoveEvents() {
+  document.querySelectorAll('.watchlist__remove-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const idx = +btn.dataset.index;
+      WATCHLIST.splice(idx, 1);
+      if (state.activeIndex >= WATCHLIST.length) state.activeIndex = Math.max(0, WATCHLIST.length - 1);
+      saveWatchlistExtras();
+      renderWatchlistShell();
+      renderWatchlist();
+    });
+  });
 }
 
 function renderWatchlist() {
@@ -1808,6 +1833,21 @@ function initNavigation() {
 function initWatchlistAdd() {
   const btn = document.querySelector('.panel__action');
   if (!btn) return;
+
+  // Add Edit / Done toggle button
+  const editBtn = document.createElement('button');
+  editBtn.className = 'panel__action';
+  editBtn.id = 'wl-edit-btn';
+  editBtn.textContent = 'Edit';
+  editBtn.setAttribute('aria-label', 'Edit watchlist');
+  btn.parentElement.insertBefore(editBtn, btn);
+  editBtn.addEventListener('click', () => {
+    state.watchlistEdit = !state.watchlistEdit;
+    editBtn.textContent = state.watchlistEdit ? 'Done' : 'Edit';
+    editBtn.style.color = state.watchlistEdit ? 'var(--color-rose)' : '';
+    renderWatchlistShell();
+    renderWatchlist();
+  });
 
   // Create the add-symbol modal
   const modal = document.createElement('div');

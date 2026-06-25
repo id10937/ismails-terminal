@@ -487,6 +487,41 @@ body {
   transition: width 0.6s ease;
 }
 
+/* Edit mode — remove button */
+.watchlist__item--edit {
+  grid-template-columns: 24px 1fr auto;
+  padding-left: 8px;
+}
+.watchlist__item--edit .watchlist__symbol { grid-column: 2; }
+.watchlist__item--edit .watchlist__name   { grid-column: 2; }
+.watchlist__item--edit .watchlist__price  { grid-column: 3; }
+.watchlist__item--edit .watchlist__change { grid-column: 3; }
+
+.watchlist__remove-btn {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  align-self: center;
+  background: none;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  border-radius: 50%;
+  color: var(--color-rose);
+  font-size: 9px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--transition), border-color var(--transition);
+  z-index: 2;
+  position: relative;
+}
+.watchlist__remove-btn:hover {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: var(--color-rose);
+}
+
 .positive { color: var(--color-positive) !important; }
 .negative { color: var(--color-negative) !important; }
 .neutral  { color: var(--color-neutral)  !important; }
@@ -1745,88 +1780,113 @@ body {
 }
 
 @media (max-width: 768px) {
-  /* Allow body to scroll instead of being locked */
+  /* Body scrolls vertically; topbar height is auto so nav row fits */
   body {
     height: auto;
-    min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
     overflow-y: auto;
-    grid-template-rows: 48px 28px auto auto;
+    grid-template-rows: auto 28px auto auto;
   }
 
-  /* Nav bar scrolls horizontally */
+  /* ── TWO-ROW TOPBAR ──────────────────────────────── */
+  .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 48px;
+    padding: 6px 10px 0;
+    gap: 4px;
+    align-items: center;
+  }
+  /* Row 1: brand (left) + right controls */
+  .topbar__left  { flex: 1 1 auto; gap: 8px; min-width: 0; }
+  .topbar__right { flex: 0 0 auto; }
+  /* Search bar takes its own row */
+  .search-bar {
+    order: 5;
+    flex: 1 1 100%;
+    max-width: none;
+    margin: 2px 0;
+  }
+  /* Nav fills the full bottom row */
   .topbar__nav {
+    order: 10;
+    flex: 1 1 100%;
     overflow-x: auto;
     flex-wrap: nowrap;
-    gap: 2px;
+    gap: 3px;
+    padding: 6px 0 6px;
+    border-top: 1px solid var(--color-border);
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
   .topbar__nav::-webkit-scrollbar { display: none; }
-  .nav-btn { padding: 5px 10px; font-size: 9px; white-space: nowrap; flex-shrink: 0; }
+  .nav-btn {
+    padding: 6px 14px;
+    font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 
   /* Ticker scrolls properly */
   .ticker-bar { overflow: hidden; }
 
-  /* Stack columns vertically: chart → watchlist → right panel */
+  /* ── STACK: watchlist → chart → right panel ──────── */
   .command-grid {
     grid-template-columns: 1fr;
     grid-template-areas:
-      "col-b"
       "col-a"
+      "col-b"
       "col-c";
     overflow: visible;
     height: auto;
   }
 
+  /* Watchlist column — shown first, scrollable */
+  .col-a {
+    border-right: none;
+    border-bottom: var(--panel-border);
+    height: auto;
+    max-height: 260px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
   /* Chart column */
   .col-b {
-    min-height: 340px;
     height: auto;
     border-right: none;
     border-bottom: var(--panel-border);
     overflow: visible;
   }
-  .chart-wrap { height: 240px; min-height: 240px; flex-shrink: 0; }
-
-  /* Watchlist column: horizontal scroll strip */
-  .col-a {
-    border-right: none;
-    border-bottom: var(--panel-border);
-    height: auto;
-    max-height: 280px;
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
+  .chart-wrap { height: 220px; min-height: 220px; flex-shrink: 0; }
 
   /* Right column: show below chart */
   .col-c {
     display: flex;
     height: auto;
     border-right: none;
-    min-height: 200px;
     overflow: visible;
   }
-  .col-c .panel { max-height: 280px; overflow-y: auto; }
+  .col-c .panel { max-height: 260px; overflow-y: auto; }
 
-  /* Indicators wrap instead of overflow */
+  /* Indicators wrap */
   .indicators-row { flex-wrap: wrap; gap: 4px; }
   .indicator-card { flex: 1 1 calc(33% - 4px); min-width: 80px; }
 
   /* Chart controls wrap */
   .chart-controls { flex-wrap: wrap; gap: 3px; }
 
-  /* Panels/overlays go full width */
+  /* Overlays full width */
   .portfolio-edit-panel { width: calc(100vw - 24px); right: 12px; left: 12px; }
   .alerts-panel { width: calc(100vw - 24px); right: 12px; left: 12px; }
   .broadcast-overlay { padding: 12px; }
 
-  /* Statusbar */
   .statusbar { font-size: 9px; }
 }
 
 @media (max-width: 480px) {
-  body { grid-template-rows: 48px 24px auto auto; }
+  body { grid-template-rows: auto 24px auto auto; }
 
   /* Compact topbar */
   .topbar { padding: 0 8px; gap: 4px; }
