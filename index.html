@@ -521,6 +521,30 @@
       </div>
     </footer>
 
+    <!-- ── LOGIN OVERLAY -->
+    <div id="login-overlay" class="login-overlay" role="dialog" aria-modal="true" aria-label="Terminal authentication">
+      <div class="login-box">
+        <div class="login-header">
+          <span class="login-logo-dot" aria-hidden="true"></span>
+          <span class="login-logo-text">ISMAIL'S TERMINAL</span>
+        </div>
+        <p class="login-subtitle">Authenticated Access Only</p>
+        <form class="login-form" id="login-form" novalidate>
+          <div class="login-field">
+            <label class="login-label" for="login-user">Username</label>
+            <input class="login-input" type="text" id="login-user" autocomplete="username" placeholder="Enter username" spellcheck="false"/>
+          </div>
+          <div class="login-field">
+            <label class="login-label" for="login-pass">Password</label>
+            <input class="login-input" type="password" id="login-pass" autocomplete="current-password" placeholder="Enter password"/>
+          </div>
+          <p class="login-error" id="login-error" aria-live="polite"></p>
+          <button class="login-btn" type="submit">ACCESS TERMINAL</button>
+        </form>
+        <p class="login-footer">Powered by Yahoo Finance · Real-time market data</p>
+      </div>
+    </div>
+
     <script src="main.js"></script>
   </body>
 </html>

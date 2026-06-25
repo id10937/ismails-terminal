@@ -16,6 +16,19 @@ const WATCHLIST = [
   { fh: 'USO',     display: 'OIL',  name: 'Oil ETF',      color: '#78716c' },
 ];
 
+// ── Watchlist localStorage persistence ───────────────────
+const DEFAULT_WATCHLIST_FHS = new Set(WATCHLIST.map(w => w.fh));
+function saveWatchlistExtras() {
+  const extras = WATCHLIST.filter(w => !DEFAULT_WATCHLIST_FHS.has(w.fh));
+  localStorage.setItem('terminal_watchlist_extras', JSON.stringify(extras));
+}
+function restoreWatchlistExtras() {
+  try {
+    const extras = JSON.parse(localStorage.getItem('terminal_watchlist_extras') || '[]');
+    extras.forEach(w => { if (!WATCHLIST.find(x => x.fh === w.fh)) WATCHLIST.push(w); });
+  } catch {}
+}
+
 const TICKER_SYMBOLS = [
   'BTC-USD', 'ETH-USD', 'SPY', 'QQQ', 'GLD', 'UUP', 'SOL-USD', 'USO',
   'TSLA', 'AAPL', 'NVDA', 'AMZN', 'GOOGL', 'MSFT', 'META', 'AMD',
@@ -764,11 +777,13 @@ function drawMainChart() {
   if (state.view === 'analytics') {
     const closes = candles.map(c => c.close).filter(c => c != null);
     if (closes.length > 20) {
-      const sma20 = calcSMA(closes, 20);
-      const sma50 = calcSMA(closes, 50);
+      const sma20  = calcSMA(closes, 20);
+      const sma50  = calcSMA(closes, 50);
+      const sma200 = calcSMA(closes, 200);
       const lines = [
-        { data: sma20, color: 'rgba(255,165,0,0.7)', label: 'SMA 20' },
-        { data: sma50, color: 'rgba(255,100,255,0.7)', label: 'SMA 50' },
+        { data: sma20,  color: 'rgba(255,165,0,0.8)',   label: 'SMA 20'  },
+        { data: sma50,  color: 'rgba(255,100,255,0.8)', label: 'SMA 50'  },
+        { data: sma200, color: 'rgba(255,80,80,0.85)',  label: 'SMA 200' },
       ];
       lines.forEach(({ data, color, label }) => {
         ctx.beginPath();
@@ -1496,11 +1511,14 @@ function renderAnalytics() {
   const volLabel = volRatio > 1.5 ? 'High Activity' : volRatio > 0.8 ? 'Normal' : 'Low Activity';
   const volColor = volRatio > 1.5 ? 'var(--color-positive)' : volRatio > 0.8 ? 'var(--color-fg)' : 'var(--color-fg-muted)';
 
-  const sma20arr = calcSMA(closes, 20);
-  const sma50arr = calcSMA(closes, 50);
-  const sma20 = sma20arr[sma20arr.length - 1];
-  const sma50 = sma50arr[sma50arr.length - 1];
-  const trendLabel = (sma20 && sma50) ? (sma20 > sma50 ? 'Bullish — SMA20 > SMA50' : 'Bearish — SMA20 < SMA50') : 'Insufficient data';
+  const sma20arr  = calcSMA(closes, 20);
+  const sma50arr  = calcSMA(closes, 50);
+  const sma200arr = calcSMA(closes, 200);
+  const sma20  = sma20arr[sma20arr.length - 1];
+  const sma50  = sma50arr[sma50arr.length - 1];
+  const sma200 = sma200arr[sma200arr.length - 1];
+  const trend200 = sma200 ? (price > sma200 ? ' · Above SMA200' : ' · Below SMA200') : '';
+  const trendLabel = (sma20 && sma50) ? (sma20 > sma50 ? 'Bullish — SMA20>50' : 'Bearish — SMA20<50') + trend200 : 'Insufficient data';
   const trendColor = (sma20 && sma50) ? (sma20 > sma50 ? 'var(--color-positive)' : 'var(--color-negative)') : 'var(--color-fg-muted)';
 
   const row = (label, value, color = 'var(--color-fg)') => `
@@ -1514,8 +1532,9 @@ function renderAnalytics() {
   ob.innerHTML =
     section('TREND') +
     row('Direction', trendLabel, trendColor) +
-    row('SMA 20', sma20 ? '$' + fmt.price(sma20, 2) : '—') +
-    row('SMA 50', sma50 ? '$' + fmt.price(sma50, 2) : '—') +
+    row('SMA 20',  sma20  ? '$' + fmt.price(sma20,  2) : '—') +
+    row('SMA 50',  sma50  ? '$' + fmt.price(sma50,  2) : '—') +
+    row('SMA 200', sma200 ? '$' + fmt.price(sma200, 2) : 'Need 200 bars', sma200 ? (price > sma200 ? 'var(--color-positive)' : 'var(--color-negative)') : 'var(--color-fg-dim)') +
     section('MOMENTUM') +
     row('RSI (14)', rsi.toFixed(1) + ' — ' + rsiLabel, rsiColor) +
     row('MACD Signal', macdLabel + ' (' + (chg >= 0 ? '+' : '') + chg.toFixed(2) + ')', macdColor) +
@@ -1847,6 +1866,7 @@ function initWatchlistAdd() {
             }
             const color = WATCHLIST_COLORS[WATCHLIST.length % WATCHLIST_COLORS.length];
             WATCHLIST.push({ fh: sym, display: sym, name, color });
+            saveWatchlistExtras();
             renderWatchlistShell();
             fetchQuote(sym).then(q => {
               if (q) state.quotes[sym] = q;
@@ -2012,9 +2032,44 @@ function initAlerts() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════════
+function initLogin() {
+  const overlay = document.getElementById('login-overlay');
+  if (!overlay) return;
+  if (localStorage.getItem('terminal_auth') === 'tarek_ok') {
+    overlay.style.display = 'none';
+    return;
+  }
+  overlay.classList.add('login-overlay--visible');
+  setTimeout(() => document.getElementById('login-user')?.focus(), 50);
+  document.getElementById('login-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const user = document.getElementById('login-user').value.trim().toLowerCase();
+    const pass = document.getElementById('login-pass').value;
+    const errEl = document.getElementById('login-error');
+    if (user === 'tarek' && pass === '1025') {
+      localStorage.setItem('terminal_auth', 'tarek_ok');
+      overlay.classList.add('login-overlay--exit');
+      setTimeout(() => { overlay.classList.remove('login-overlay--visible', 'login-overlay--exit'); overlay.style.display = 'none'; }, 550);
+    } else {
+      errEl.textContent = 'Invalid username or password.';
+      document.getElementById('login-pass').value = '';
+      document.getElementById('login-pass').focus();
+      const box = overlay.querySelector('.login-box');
+      box.classList.remove('login-box--shake');
+      void box.offsetWidth;
+      box.classList.add('login-box--shake');
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
 // MAIN ENTRY POINT
 // ═══════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  initLogin();
+  restoreWatchlistExtras();
   initClock();
   initBgCanvas();
   initMainChart();

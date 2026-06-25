@@ -1636,6 +1636,143 @@ body {
   pointer-events: none;
 }
 
+/* ── LOGIN OVERLAY ───────────────────────────────────────── */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: var(--color-bg);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.login-overlay--visible { display: flex; }
+.login-overlay--exit { animation: login-fade-out 0.5s ease forwards; }
+@keyframes login-fade-out {
+  to { opacity: 0; transform: scale(1.03); }
+}
+.login-box {
+  width: 340px;
+  background: var(--color-surface);
+  border: 1px solid rgba(0,255,255,0.2);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 60px rgba(0,255,255,0.08), 0 20px 60px rgba(0,0,0,0.8);
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+@keyframes login-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+.login-box--shake { animation: login-shake 0.4s ease; }
+.login-header { display: flex; align-items: center; gap: 10px; }
+.login-logo-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 12px var(--color-primary);
+  animation: pulse-dot 1.2s ease infinite;
+  flex-shrink: 0;
+}
+.login-logo-text {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+}
+.login-subtitle {
+  font-size: 10px;
+  color: var(--color-fg-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: -8px 0 0;
+}
+.login-form { display: flex; flex-direction: column; gap: 12px; }
+.login-field { display: flex; flex-direction: column; gap: 5px; }
+.login-label { font-size: 10px; color: var(--color-fg-dim); letter-spacing: 0.06em; text-transform: uppercase; }
+.login-input {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  color: var(--color-fg);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  width: 100%;
+  box-sizing: border-box;
+}
+.login-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(0,255,255,0.1);
+}
+.login-error {
+  font-size: 10px;
+  color: var(--color-rose);
+  min-height: 14px;
+  font-family: var(--font-mono);
+}
+.login-btn {
+  padding: 11px;
+  background: rgba(0,255,255,0.1);
+  border: 1px solid rgba(0,255,255,0.35);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: background var(--transition), box-shadow var(--transition);
+  margin-top: 4px;
+}
+.login-btn:hover {
+  background: rgba(0,255,255,0.2);
+  box-shadow: 0 0 16px rgba(0,255,255,0.15);
+}
+.login-footer {
+  font-size: 9px;
+  color: var(--color-fg-dim);
+  text-align: center;
+}
+
+/* ── MOBILE RESPONSIVE ───────────────────────────────────── */
+@media (max-width: 960px) {
+  .dashboard { grid-template-columns: 200px 1fr 220px; }
+}
+@media (max-width: 768px) {
+  .topbar__nav { overflow-x: auto; flex-wrap: nowrap; gap: 2px; -webkit-overflow-scrolling: touch; }
+  .nav-btn { padding: 4px 9px; font-size: 9px; white-space: nowrap; flex-shrink: 0; }
+  .dashboard {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas: "col-b" "col-a" "col-c";
+    overflow-y: auto;
+  }
+  .col-a { max-height: 260px; overflow-y: auto; border-right: none; border-bottom: 1px solid var(--color-border); }
+  .col-c { display: none; }
+  .col-b { min-height: 360px; }
+  .chart-wrap canvas { min-height: 220px; }
+  .indicators-row { flex-wrap: wrap; gap: 4px; }
+  .indicator-card { flex: 1 1 calc(33% - 4px); min-width: 80px; }
+  .portfolio-edit-panel { width: calc(100vw - 24px); right: 12px; }
+  .alerts-panel { width: calc(100vw - 24px); right: 12px; }
+}
+@media (max-width: 480px) {
+  .topbar { padding: 0 8px; gap: 6px; }
+  .topbar__brand-name { display: none; }
+  .topbar__search { flex: 1; max-width: none; }
+  .topbar__clock { display: none; }
+  .status-dot--live span { display: none; }
+  .col-a { display: none; }
+  .statusbar { font-size: 8px; gap: 6px; padding: 0 6px; }
+  .statusbar__right { display: none; }
+  .login-box { width: calc(100vw - 32px); padding: 24px 20px; }
+}
+
 /* ── REDUCED MOTION ──────────────────────────────────────── */
 /* ── PORTFOLIO EDIT PANEL ────────────────────────────────── */
 .portfolio-edit-btn {
