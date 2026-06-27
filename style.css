@@ -509,6 +509,9 @@ body {
   overflow: hidden;
   position: relative;
   z-index: 100;
+  contain: paint;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .ticker {
@@ -523,7 +526,6 @@ body {
   height: 100%;
   animation: ticker-scroll 60s linear infinite;
   white-space: nowrap;
-  will-change: transform;
 }
 
 @keyframes ticker-scroll {
