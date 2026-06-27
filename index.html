@@ -2,18 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ismail's Terminal for Tarek</title>
-    <meta
-      name="description"
-      content="Ismail's Terminal — live Yahoo Finance market data, charts, search, news, and portfolio intelligence."
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <title>Ismail's Terminal</title>
+    <meta name="description" content="Ismail's Terminal - live Yahoo Finance market data, charts, search, news, and portfolio intelligence." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
   </head>
 
@@ -21,61 +19,26 @@
     <!-- Ambient background canvas -->
     <canvas id="bg-canvas" aria-hidden="true"></canvas>
 
-    <!-- Scanline overlay -->
-    <div class="scanlines" aria-hidden="true"></div>
-
     <!-- ═══════════════════════════════════════════════════════ TOPBAR -->
     <header class="topbar" role="banner">
       <div class="topbar__left">
         <div class="topbar__logo">
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 28 28"
-            fill="none"
-            aria-hidden="true"
-          >
-            <polygon
-              points="14,2 26,8 26,20 14,26 2,20 2,8"
-              stroke="#00FFFF"
-              stroke-width="1.5"
-              fill="none"
-            />
-            <polygon
-              points="14,7 21,11 21,17 14,21 7,17 7,11"
-              stroke="#00FFFF"
-              stroke-width="1"
-              fill="rgba(0,255,255,0.08)"
-            />
-            <circle cx="14" cy="14" r="2.5" fill="#00FFFF" />
+          <svg width="26" height="26" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+            <polygon points="14,2 26,8 26,20 14,26 2,20 2,8" stroke="#0a0a0a" stroke-width="1.5" fill="none" opacity="0.9"/>
+            <polygon points="14,7 21,11 21,17 14,21 7,17 7,11" stroke="#0a0a0a" stroke-width="1" fill="rgba(0,0,0,0.06)"/>
+            <circle cx="14" cy="14" r="2.5" fill="#0a0a0a"/>
           </svg>
-          <span class="topbar__brand"
-            >ISMAIL'S<span class="topbar__brand--accent"> TERMINAL FOR TMN</span></span
-          >
+          <span class="topbar__brand">ISMAIL'S<span class="topbar__brand--accent"> TERMINAL</span><span class="topbar__tmn"> · TMN</span></span>
         </div>
         <div class="topbar__divider" aria-hidden="true"></div>
-        <span class="topbar__user">Powered by Yahoo Finance</span>
+        <span class="topbar__user topbar__user--desktop">Yahoo Finance</span>
         <span class="topbar__badge">LIVE</span>
       </div>
 
-      <!-- ── SEARCH BAR ── -->
-      <div
-        class="search-bar"
-        id="search-bar"
-        role="search"
-        aria-label="Search symbols"
-      >
+      <!-- SEARCH BAR -->
+      <div class="search-bar" id="search-bar" role="search" aria-label="Search symbols">
         <div class="search-bar__inner">
-          <svg
-            class="search-bar__icon"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            aria-hidden="true"
-          >
+          <svg class="search-bar__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -83,7 +46,7 @@
             type="search"
             id="search-input"
             class="search-bar__input"
-            placeholder="Search symbol or company…"
+            placeholder="Search symbol…"
             autocomplete="off"
             spellcheck="false"
             aria-label="Search financial symbols"
@@ -91,30 +54,14 @@
             aria-controls="search-dropdown"
             aria-autocomplete="list"
           />
-          <div
-            class="search-bar__spinner"
-            id="search-spinner"
-            aria-hidden="true"
-          ></div>
-          <kbd class="search-bar__shortcut" aria-hidden="true">/</kbd>
+          <div class="search-bar__spinner" id="search-spinner" aria-hidden="true"></div>
+          <kbd class="search-bar__shortcut topbar__user--desktop" aria-hidden="true">/</kbd>
         </div>
-        <ul
-          class="search-dropdown"
-          id="search-dropdown"
-          role="listbox"
-          aria-label="Search results"
-          hidden
-        ></ul>
+        <ul class="search-dropdown" id="search-dropdown" role="listbox" aria-label="Search results" hidden></ul>
       </div>
 
-      <nav class="topbar__nav" aria-label="Primary navigation">
-        <button
-          class="nav-btn nav-btn--active"
-          id="nav-markets"
-          aria-current="page"
-        >
-          Markets
-        </button>
+      <nav class="topbar__nav topbar__nav--desktop" aria-label="Primary navigation">
+        <button class="nav-btn nav-btn--active" id="nav-markets" aria-current="page">Markets</button>
         <button class="nav-btn" id="nav-portfolio">Portfolio</button>
         <button class="nav-btn" id="nav-analytics">Analytics</button>
         <button class="nav-btn" id="nav-signals">Signals</button>
@@ -124,30 +71,13 @@
       </nav>
 
       <div class="topbar__right">
-        <div
-          class="topbar__clock"
-          id="clock"
-          aria-live="polite"
-          aria-label="Current time"
-        ></div>
+        <div class="topbar__clock" id="clock" aria-live="polite" aria-label="Current time"></div>
         <div class="status-dot status-dot--live" title="Live feed active">
           <span class="status-dot__pulse" aria-hidden="true"></span>
-          LIVE
+          <span class="topbar__user--desktop">LIVE</span>
         </div>
-        <button
-          class="icon-btn"
-          aria-label="Notifications"
-          id="btn-notifications"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            aria-hidden="true"
-          >
+        <button class="icon-btn" aria-label="Notifications" id="btn-notifications">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
@@ -164,31 +94,20 @@
 
     <!-- ═══════════════════════════════════════════════════════ MAIN GRID -->
     <main class="command-grid" id="main-content" role="main">
-      <!-- ── COLUMN A: Watchlist + Heatmap -->
-      <aside class="col-a" aria-label="Watchlist panel">
+      <!-- COLUMN A: Watchlist + Heatmap -->
+      <aside class="col-a" data-panel="watch" aria-label="Watchlist panel">
         <!-- Watchlist -->
-        <section
-          class="panel panel--watchlist"
-          aria-labelledby="watchlist-heading"
-        >
+        <section class="panel panel--watchlist" aria-labelledby="watchlist-heading">
           <div class="panel__header">
             <h2 class="panel__title" id="watchlist-heading">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#00FFFF"
-                stroke-width="2"
-                aria-hidden="true"
-              >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" aria-hidden="true">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
               Watchlist
             </h2>
-            <button class="panel__action" aria-label="Add to watchlist">
-              +
-            </button>
+            <div class="panel__actions">
+              <button class="panel__action" aria-label="Add to watchlist" id="wl-add-trigger">+</button>
+            </div>
           </div>
           <ul class="watchlist" id="watchlist" role="list"></ul>
         </section>
@@ -197,48 +116,29 @@
         <section class="panel panel--heatmap" aria-labelledby="heatmap-heading">
           <div class="panel__header">
             <h2 class="panel__title" id="heatmap-heading">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#00FFFF"
-                stroke-width="2"
-                aria-hidden="true"
-              >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" aria-hidden="true">
                 <rect x="3" y="3" width="7" height="7" />
                 <rect x="14" y="3" width="7" height="7" />
                 <rect x="14" y="14" width="7" height="7" />
                 <rect x="3" y="14" width="7" height="7" />
               </svg>
-              Sector Heatmap
+              Sectors
             </h2>
           </div>
-          <div
-            class="heatmap-grid"
-            id="heatmap-grid"
-            role="grid"
-            aria-label="Sector performance heatmap"
-          ></div>
+          <div class="heatmap-grid" id="heatmap-grid" role="grid" aria-label="Sector performance heatmap"></div>
         </section>
       </aside>
 
-      <!-- ── COLUMN B: Main Chart Area -->
-      <section class="col-b" aria-label="Primary chart panel">
+      <!-- COLUMN B: Main Chart Area -->
+      <section class="col-b" data-panel="chart" aria-label="Primary chart panel">
         <!-- Hero chart controls -->
         <div class="chart-controls">
           <div class="chart-controls__symbol">
             <span class="symbol-name" id="active-symbol">BTC / USD</span>
             <span class="symbol-price" id="active-price">$71,458.12</span>
-            <span class="symbol-change positive" id="active-change"
-              >+2.34%</span
-            >
+            <span class="symbol-change positive" id="active-change">+2.34%</span>
           </div>
-          <div
-            class="chart-controls__timeframes"
-            role="group"
-            aria-label="Timeframe selector"
-          >
+          <div class="chart-controls__timeframes" role="group" aria-label="Timeframe selector">
             <button class="tf-btn" data-tf="1m">1m</button>
             <button class="tf-btn" data-tf="1D">1D</button>
             <button class="tf-btn tf-btn--active" data-tf="1W">1W</button>
@@ -248,36 +148,14 @@
             <button class="tf-btn" data-tf="1Y">1Y</button>
           </div>
           <div class="chart-controls__tools">
-            <button
-              class="tool-btn tool-btn--active"
-              aria-label="Candlestick chart"
-              id="btn-candle"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                aria-hidden="true"
-              >
-                <line x1="8" y1="2" x2="8" y2="22" />
-                <rect x="5" y="6" width="6" height="10" />
-                <line x1="16" y1="2" x2="16" y2="22" />
-                <rect x="13" y="8" width="6" height="8" />
+            <button class="tool-btn tool-btn--active" aria-label="Candlestick chart" id="btn-candle">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <line x1="8" y1="2" x2="8" y2="22" /><rect x="5" y="6" width="6" height="10" />
+                <line x1="16" y1="2" x2="16" y2="22" /><rect x="13" y="8" width="6" height="8" />
               </svg>
             </button>
             <button class="tool-btn" aria-label="Line chart" id="btn-line">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                aria-hidden="true"
-              >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
             </button>
@@ -285,27 +163,41 @@
         </div>
 
         <!-- Main Canvas Chart -->
-        <div
-          class="chart-wrap"
-          role="img"
-          aria-label="Interactive price chart for BTC/USD"
-        >
+        <div class="chart-wrap" role="img" aria-label="Interactive price chart">
           <canvas id="main-chart"></canvas>
           <div class="chart-crosshair" id="crosshair" aria-hidden="true">
             <div class="crosshair-price" id="crosshair-price"></div>
             <div class="crosshair-time" id="crosshair-time"></div>
           </div>
-          <div
-            class="chart-tooltip"
-            id="chart-tooltip"
-            role="tooltip"
-            aria-hidden="true"
-          ></div>
+          <div class="chart-tooltip" id="chart-tooltip" role="tooltip" aria-hidden="true"></div>
         </div>
 
         <!-- Volume bars -->
         <div class="volume-wrap" aria-label="Volume bars">
           <canvas id="volume-chart"></canvas>
+        </div>
+
+        <!-- SMA values row -->
+        <div class="sma-row" id="sma-row">
+          <div class="sma-row__item">
+            <span class="sma-row__label">SMA 20</span>
+            <span class="sma-row__value" id="sma20-val">—</span>
+          </div>
+          <div class="sma-row__divider"></div>
+          <div class="sma-row__item">
+            <span class="sma-row__label">SMA 50</span>
+            <span class="sma-row__value" id="sma50-val">—</span>
+          </div>
+          <div class="sma-row__divider"></div>
+          <div class="sma-row__item">
+            <span class="sma-row__label">SMA 200</span>
+            <span class="sma-row__value" id="sma200-val">—</span>
+          </div>
+          <div class="sma-row__divider"></div>
+          <div class="sma-row__item">
+            <span class="sma-row__label">PRICE</span>
+            <span class="sma-row__value" id="sma-price-val">—</span>
+          </div>
         </div>
 
         <!-- Bottom indicators row -->
@@ -314,18 +206,12 @@
             <span class="indicator-card__label">RSI (14)</span>
             <span class="indicator-card__value" id="rsi-val">58.4</span>
             <div class="indicator-bar">
-              <div
-                class="indicator-bar__fill"
-                id="rsi-bar"
-                style="width: 58.4%"
-              ></div>
+              <div class="indicator-bar__fill" id="rsi-bar" style="width: 58.4%"></div>
             </div>
           </div>
           <div class="indicator-card" aria-label="MACD indicator">
             <span class="indicator-card__label">MACD</span>
-            <span class="indicator-card__value positive" id="macd-val"
-              >+142.7</span
-            >
+            <span class="indicator-card__value positive" id="macd-val">+142.7</span>
           </div>
           <div class="indicator-card" aria-label="Bollinger Bands indicator">
             <span class="indicator-card__label">BB Width</span>
@@ -337,9 +223,7 @@
           </div>
           <div class="indicator-card" aria-label="Funding Rate">
             <span class="indicator-card__label">Funding</span>
-            <span class="indicator-card__value positive" id="fund-val"
-              >+0.012%</span
-            >
+            <span class="indicator-card__value positive" id="fund-val">+0.012%</span>
           </div>
           <div class="indicator-card" aria-label="Open Interest">
             <span class="indicator-card__label">OI</span>
@@ -347,15 +231,30 @@
           </div>
         </div>
 
+        <!-- Mobile-only: Intelligence below chart -->
+        <section class="panel panel--news mobile-chart-intel" aria-label="Market intelligence">
+          <div class="panel__header">
+            <h2 class="panel__title">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" aria-hidden="true">
+                <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Z"/>
+                <path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/>
+              </svg>
+              Intelligence
+            </h2>
+            <span class="status-dot status-dot--pulse" aria-hidden="true"></span>
+          </div>
+          <ul class="news-feed" id="mobile-news-feed" role="list" aria-label="Market news"></ul>
+        </section>
+
         <!-- News Broadcast Overlay -->
         <div id="broadcast-overlay" class="broadcast-overlay" hidden>
           <div class="broadcast-header">
             <div class="broadcast-header__left">
               <span class="broadcast-live-dot" aria-hidden="true"></span>
-              <span class="broadcast-title">LIVE FINANCIAL NEWS BROADCAST</span>
+              <span class="broadcast-title">LIVE FINANCIAL NEWS</span>
             </div>
             <div class="broadcast-header__right">
-              <span class="broadcast-meta" id="broadcast-meta">Loading…</span>
+              <span class="broadcast-meta" id="broadcast-meta">Loading...</span>
               <span class="broadcast-refresh" id="broadcast-countdown"></span>
             </div>
           </div>
@@ -364,64 +263,49 @@
         </div>
       </section>
 
-      <!-- ── COLUMN C: Right panel — Orders, News, Radar -->
-      <aside class="col-c" aria-label="Orders and intelligence panel">
-        <!-- Order Book -->
-        <section
-          class="panel panel--orderbook"
-          aria-labelledby="orderbook-heading"
-        >
-          <div class="panel__header">
-            <h2 class="panel__title" id="orderbook-heading">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#00FFFF"
-                stroke-width="2"
-                aria-hidden="true"
-              >
-                <line x1="8" y1="6" x2="21" y2="6" />
-                <line x1="8" y1="12" x2="21" y2="12" />
-                <line x1="8" y1="18" x2="21" y2="18" />
-                <line x1="3" y1="6" x2="3.01" y2="6" />
-                <line x1="3" y1="12" x2="3.01" y2="12" />
-                <line x1="3" y1="18" x2="3.01" y2="18" />
-              </svg>
-              Order Book
-            </h2>
-            <span class="panel__meta">Depth ×5</span>
+      <!-- COLUMN D: AI Chat (mobile only panel) -->
+      <section class="col-d" data-panel="ai" aria-label="AI analysis chat">
+        <div class="panel__header" style="flex-shrink:0">
+          <h2 class="panel__title">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" aria-hidden="true">
+              <path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><circle cx="18" cy="6" r="3" fill="#0a0a0a" opacity="0.4"/>
+            </svg>
+            AI Analysis
+          </h2>
+          <span class="panel__meta">Ask about any ticker</span>
+        </div>
+        <div class="ai-chat ai-chat--mobile" id="ai-chat-mobile">
+          <div class="ai-chat__messages" id="ai-chat-messages-mobile"></div>
+          <div class="ai-chat__input-row">
+            <input class="ai-chat__input" id="ai-chat-input-mobile" type="text" placeholder="Type a ticker… e.g. AAPL" autocomplete="off" spellcheck="false" aria-label="Ask AI about a ticker"/>
+            <button class="ai-chat__send" id="ai-chat-send-mobile" aria-label="Analyze">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
           </div>
-          <div
-            class="orderbook"
-            id="orderbook"
-            role="table"
-            aria-label="Order book bids and asks"
-          >
-            <div class="orderbook__header" role="row">
-              <span role="columnheader">Price</span>
-              <span role="columnheader">Size</span>
-              <span role="columnheader">Total</span>
+        </div>
+      </section>
+
+      <!-- COLUMN C: AI Chat, News, Radar -->
+      <aside class="col-c" data-panel="book" aria-label="AI and intelligence panel">
+        <!-- AI Chat Panel -->
+        <section class="panel panel--ai-chat" aria-labelledby="ai-chat-heading">
+          <div class="panel__header">
+            <h2 class="panel__title" id="ai-chat-heading">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" aria-hidden="true">
+                <path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><circle cx="18" cy="6" r="3" fill="#0a0a0a" opacity="0.4"/>
+              </svg>
+              AI Analysis
+            </h2>
+            <span class="panel__meta" id="ai-chat-meta">Ask about any ticker</span>
+          </div>
+          <div class="ai-chat" id="ai-chat-desktop">
+            <div class="ai-chat__messages" id="ai-chat-messages"></div>
+            <div class="ai-chat__input-row">
+              <input class="ai-chat__input" id="ai-chat-input" type="text" placeholder="Type a ticker… e.g. AAPL or NVDA" autocomplete="off" spellcheck="false" aria-label="Ask AI about a ticker"/>
+              <button class="ai-chat__send" id="ai-chat-send" aria-label="Analyze">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
             </div>
-            <div
-              class="orderbook__asks"
-              id="ob-asks"
-              role="rowgroup"
-              aria-label="Ask orders"
-            ></div>
-            <div
-              class="orderbook__spread"
-              id="ob-spread"
-              aria-live="polite"
-              aria-label="Spread"
-            ></div>
-            <div
-              class="orderbook__bids"
-              id="ob-bids"
-              role="rowgroup"
-              aria-label="Bid orders"
-            ></div>
           </div>
         </section>
 
@@ -429,107 +313,101 @@
         <section class="panel panel--news" aria-labelledby="news-heading">
           <div class="panel__header">
             <h2 class="panel__title" id="news-heading">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#00FFFF"
-                stroke-width="2"
-                aria-hidden="true"
-              >
-                <path
-                  d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"
-                />
-                <path d="M18 14h-8" />
-                <path d="M15 18h-5" />
-                <path d="M10 6h8v4h-8V6Z" />
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" aria-hidden="true">
+                <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/>
+                <path d="M18 14h-8" /><path d="M15 18h-5" /><path d="M10 6h8v4h-8V6Z" />
               </svg>
-              Market Intelligence
+              Intelligence
             </h2>
-            <span
-              class="status-dot status-dot--pulse"
-              aria-hidden="true"
-            ></span>
+            <span class="status-dot status-dot--pulse" aria-hidden="true"></span>
           </div>
-          <ul
-            class="news-feed"
-            id="news-feed"
-            role="list"
-            aria-label="Market news feed"
-          ></ul>
+          <ul class="news-feed" id="news-feed" role="list" aria-label="Market news feed"></ul>
         </section>
 
         <!-- Circular Radar -->
         <section class="panel panel--radar" aria-labelledby="radar-heading">
           <div class="panel__header">
             <h2 class="panel__title" id="radar-heading">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#00FFFF"
-                stroke-width="2"
-                aria-hidden="true"
-              >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" />
-                <line x1="22" y1="12" x2="18" y2="12" />
-                <line x1="6" y1="12" x2="2" y2="12" />
-                <line x1="12" y1="6" x2="12" y2="2" />
-                <line x1="12" y1="22" x2="12" y2="18" />
+                <line x1="22" y1="12" x2="18" y2="12" /><line x1="6" y1="12" x2="2" y2="12" />
+                <line x1="12" y1="6" x2="12" y2="2" /><line x1="12" y1="22" x2="12" y2="18" />
               </svg>
               Market Radar
             </h2>
           </div>
           <div class="radar-wrap">
-            <canvas
-              id="radar-chart"
-              aria-label="Multi-asset performance radar chart"
-              role="img"
-            ></canvas>
+            <canvas id="radar-chart" aria-label="Multi-asset performance radar chart" role="img"></canvas>
           </div>
         </section>
       </aside>
     </main>
 
-    <!-- ═══════════════════════════════════════════════════════ STATUS BAR -->
-    <footer class="statusbar" role="contentinfo">
+    <!-- ═══════════════════════════════════════════════════════ STATUS BAR (desktop only) -->
+    <footer class="statusbar statusbar--desktop" role="contentinfo">
       <div class="statusbar__left">
         <span class="statusbar__item">
           <span class="dot dot--green" aria-hidden="true"></span>Yahoo Finance
-          Connected
         </span>
-        <span class="statusbar__item"
-          >Latency: <strong id="latency">4ms</strong></span
-        >
-        <span class="statusbar__item">Feed: Quotes · Charts · News</span>
+        <span class="statusbar__item">Latency: <strong id="latency">4ms</strong></span>
+        <span class="statusbar__item">Quotes · Charts · News</span>
       </div>
       <div class="statusbar__center">
-        <span class="statusbar__item"
-          >Ismail's Terminal v1.0 — Yahoo Finance Engine</span
-        >
+        <span class="statusbar__item" id="diag-status"></span>
       </div>
       <div class="statusbar__right">
-        <span class="statusbar__item"
-          >Portfolio P&L:
-          <strong class="positive" id="total-pnl">+$124,847.22</strong></span
-        >
-        <span class="statusbar__item"
-          >Today:
-          <strong class="positive" id="day-pnl">+$8,412.50</strong></span
-        >
+        <span class="statusbar__item">P&amp;L: <strong class="positive" id="total-pnl">+$0.00</strong></span>
+        <span class="statusbar__item">Today: <strong class="positive" id="day-pnl">+$0.00</strong></span>
       </div>
     </footer>
 
-    <!-- ── LOGIN OVERLAY -->
+    <!-- ═══════════════════════════════════════════════════════ MOBILE BOTTOM NAV -->
+    <nav class="mobile-nav" aria-label="Mobile navigation" id="mobile-nav">
+      <button class="mobile-nav__btn" data-panel="watch" aria-label="Watchlist">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        <span>Watch</span>
+      </button>
+      <button class="mobile-nav__btn mobile-nav__btn--active" data-panel="chart" aria-label="Chart">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <polyline points="22 22 14 14 10 18 2 10"/><polyline points="16 22 22 22 22 16"/>
+        </svg>
+        <span>Chart</span>
+      </button>
+      <button class="mobile-nav__btn" data-panel="ai" aria-label="AI Analysis">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+        </svg>
+        <span>AI</span>
+      </button>
+      <button class="mobile-nav__btn" data-mobile-view="analytics" aria-label="Analytics">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+        </svg>
+        <span>Analytics</span>
+      </button>
+      <button class="mobile-nav__btn" data-mobile-view="news" aria-label="News">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Z"/>
+          <path d="M18 14h-8"/><path d="M15 18h-5"/>
+        </svg>
+        <span>News</span>
+      </button>
+    </nav>
+
+    <!-- LOGIN OVERLAY -->
     <div id="login-overlay" class="login-overlay" role="dialog" aria-modal="true" aria-label="Terminal authentication">
       <div class="login-box">
         <div class="login-header">
-          <span class="login-logo-dot" aria-hidden="true"></span>
+          <svg width="24" height="24" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+            <polygon points="14,2 26,8 26,20 14,26 2,20 2,8" stroke="#0a0a0a" stroke-width="1.5" fill="none"/>
+            <circle cx="14" cy="14" r="2.5" fill="#0a0a0a"/>
+          </svg>
           <span class="login-logo-text">ISMAIL'S TERMINAL</span>
         </div>
-        <p class="login-subtitle">Authenticated Access Only</p>
+        <p class="login-subtitle">Authenticated access only</p>
         <form class="login-form" id="login-form" novalidate>
           <div class="login-field">
             <label class="login-label" for="login-user">Username</label>
@@ -540,9 +418,9 @@
             <input class="login-input" type="password" id="login-pass" autocomplete="current-password" placeholder="Enter password"/>
           </div>
           <p class="login-error" id="login-error" aria-live="polite"></p>
-          <button class="login-btn" type="submit">ACCESS TERMINAL</button>
+          <button class="login-btn" type="submit">Access Terminal</button>
         </form>
-        <p class="login-footer">Powered by Yahoo Finance · Real-time market data</p>
+        <p class="login-footer">Powered by Yahoo Finance</p>
       </div>
     </div>
 
