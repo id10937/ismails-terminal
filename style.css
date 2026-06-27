@@ -105,6 +105,7 @@ body {
   max-width: 100%;
   height: 100dvh;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: var(--topbar-h) var(--ticker-h) 1fr var(--statusbar-h);
   grid-template-areas:
     "topbar"
@@ -148,6 +149,8 @@ body {
   z-index: 200;
   position: relative;
   gap: 10px;
+  min-width: 0;
+  overflow: hidden;
   animation: fadeDown 0.4s var(--ease-lg) both;
 }
 
@@ -204,6 +207,16 @@ body {
 @media (min-width: 900px) {
   .topbar__user--desktop { display: inline; }
   .topbar__divider { display: flex; }
+}
+
+/* Mobile topbar: reclaim space so search + bell fit fully */
+@media (max-width: 768px) {
+  .topbar { gap: 8px; }
+  .topbar__badge,
+  .topbar__divider,
+  .topbar__tmn { display: none; }
+  .topbar__brand { font-size: 10px; letter-spacing: 0.05em; }
+  .topbar__left { min-width: 0; }
 }
 
 .topbar__badge {
@@ -356,6 +369,7 @@ body {
 /* ── SEARCH BAR ─────────────────────────────────────────── */
 .search-bar {
   flex: 1;
+  min-width: 0;
   max-width: 360px;
   position: relative;
 }
@@ -371,6 +385,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
@@ -509,6 +524,7 @@ body {
   overflow: hidden;
   position: relative;
   z-index: 100;
+  min-width: 0;
   contain: paint;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
@@ -575,10 +591,11 @@ body {
 .command-grid {
   grid-area: main;
   display: grid;
-  grid-template-columns: 260px 1fr 250px;
+  grid-template-columns: 260px minmax(0, 1fr) 250px;
   overflow: hidden;
   position: relative;
   z-index: 10;
+  min-width: 0;
   animation: fadeIn 0.5s var(--ease-lg) 0.1s both;
 }
 
