@@ -110,7 +110,7 @@ body {
 
 @media (max-width: 768px) {
   body {
-    grid-template-rows: var(--topbar-h) var(--ticker-h) 1fr var(--mobile-nav-h);
+    grid-template-rows: calc(var(--topbar-h) + env(safe-area-inset-top)) var(--ticker-h) 1fr calc(var(--mobile-nav-h) + env(safe-area-inset-bottom));
     grid-template-areas:
       "topbar"
       "ticker"
@@ -134,7 +134,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 14px;
+  padding: env(safe-area-inset-top, 0px) 14px 0;
   background: rgba(5,5,14,0.96);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(16px);
@@ -2976,7 +2976,7 @@ body {
   }
 
   .data-loading-banner {
-    bottom: calc(var(--mobile-nav-h) + 8px);
+    bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px) + 8px);
   }
 
   .alerts-panel {
