@@ -150,7 +150,8 @@ body {
   position: relative;
   gap: 10px;
   min-width: 0;
-  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
   animation: fadeDown 0.4s var(--ease-lg) both;
 }
 
